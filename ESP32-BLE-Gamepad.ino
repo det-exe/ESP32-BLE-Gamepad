@@ -1,8 +1,8 @@
 #include <Arduino.h>
-#include <bleGamepad.h>
+#include <BleGamepad.h>
 
 // Bluetooth device name
-BleGamepad bleGamepad("ESP32 Gamepad", "dev-exe", 100)
+BleGamepad bleGamepad("ESP32 Gamepad", "dev-exe", 100);
 
 // Pin definitions
 // Left analogue stick
@@ -22,7 +22,7 @@ const int serialInterval = 500;
 
 void setup() {
   // For serial monitor in Arduino IDE (to be removed)
-  Serial.begin(115200)
+  Serial.begin(115200);
   Serial.println("Start: ");
 
   // Hardware setup
@@ -65,7 +65,7 @@ void loop() {
     if (millis() - lastSerialTime > serialInterval)
     {
       Serial.print("L: "); Serial.print(rawLX); Serial.print(","); Serial.print(rawLY);
-      Serial.print("\t R: "); Serial.print(rawRX); Serial.print(","); Serial.print(rawRY);
+      Serial.print("\t R: "); Serial.print(rawRX); Serial.print(","); Serial.println(rawRY);
       lastSerialTime = millis();
     }
   }
