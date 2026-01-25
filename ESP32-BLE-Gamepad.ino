@@ -15,12 +15,24 @@ const int pinRX = 36;
 const int pinRY = 39;
 #define BTN_R_PIN 33
 
+// Global variables
+// Raw hardware readings (0-4095)
+int rawLX, rawLY, rawRX, rawRY;
+// Mapped readings (0-32737)
+int outLX, outLY, outRX, outRY;
 
 // For serial monitor in Arduino IDE (to be removed)
 unsigned long lastSerialTime = 0;
 const int serialInterval = 500;
 
-void setup() {
+// Function prototypes
+void readHardware();
+void processInputs();
+void sendReport();
+void printDebug();
+
+void setup() 
+{
   // For serial monitor in Arduino IDE (to be removed)
   Serial.begin(115200);
   Serial.println("Start: ");
@@ -39,36 +51,53 @@ void setup() {
   bleGamepad.begin(&bleGamepadConfig);
 }
 
-void loop() {
+void loop() 
+{
   if (bleGamepad.isConnected())
   {
-    // Read analogue sticks
-    int rawLX = analogRead(pinLX);
-    int rawLY = analogRead(pinLY);
-    int rawRX = analogRead(pinRX);
-    int rawRY = analogRead(pinRY);
-
-    // Convert ESP32 12-bit input (0-4095) to standard 16-bit Gamepad output (0-32737)
-    // Left stick
-    int outLX = map(rawLX, 0, 4095, 0, 32737);
-    int outLY = map(rawLY, 0, 4095, 0, 32737);
-
-    // Right stick
-    int outRX = map(rawRX, 0, 4095, 0, 32737);
-    int outRY = map(rawRY, 0, 4095, 0, 32737);
-
-    // Communication with PC
-    bleGamepad.setLeftThumb(outLX, outLY);
-    bleGamepad.setRX(outRX);
-    bleGamepad.setRY(outRY);
-
-    if (millis() - lastSerialTime > serialInterval)
-    {
-      Serial.print("L: "); Serial.print(rawLX); Serial.print(","); Serial.print(rawLY);
-      Serial.print("\t R: "); Serial.print(rawRX); Serial.print(","); Serial.println(rawRY);
-      lastSerialTime = millis();
-    }
+    readHardware();
+    processInputs();
+    sendReport();
+    printDebug();
   }
 
   delay(20);
+}
+
+void readHardware()
+{
+  // Read analogue sticks
+  rawLX = analogRead(pinLX);
+  rawLY = analogRead(pinLY);
+  rawRX = analogRead(pinRX);
+  rawRY = analogRead(pinRY);
+}
+
+void processInputs()
+{
+  // Convert ESP32 12-bit input (0-4095) to standard 16-bit Gamepad output (0-32737)
+  // Left stick
+  outLX = map(rawLX, 0, 4095, 0, 32737);
+  outLY = map(rawLY, 0, 4095, 0, 32737);
+  // Right stick
+  outRX = map(rawRX, 0, 4095, 0, 32737);
+  outRY = map(rawRY, 0, 4095, 0, 32737);
+}
+
+void sendReport()
+{
+  // Communication with PC
+  bleGamepad.setLeftThumb(outLX, outLY);
+  bleGamepad.setRX(outRX);
+  bleGamepad.setRY(outRY);
+}
+
+void printDebug()
+{
+  if (millis() - lastSerialTime > serialInterval)
+  {
+    Serial.print("L: "); Serial.print(rawLX); Serial.print(","); Serial.print(rawLY);
+    Serial.print("\t R: "); Serial.print(rawRX); Serial.print(","); Serial.println(rawRY);
+    lastSerialTime = millis();
+  }
 }
