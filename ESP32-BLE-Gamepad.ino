@@ -5,6 +5,7 @@
 #define gamepadMAX 32767 // Standard gamepad output (signed 16-bit)
 #define pollingInterval 20 // 20ms = 50Hz polling rate
 #define buttonCount 2 // Number of buttons, to be updated as buttons are added (L3, R3)
+#define debounceDelay 15 // 15ms debounce time
 
 // Stick Pin Definitions
 const int PIN_LX = 34;
@@ -17,6 +18,8 @@ struct inputMap
   const uint8_t pin; // Associated pin on ESP32
   const uint8_t hidMap; // Button ID sent to PC
   bool isPressed; // Pressed or not pressed
+  bool lastReading; // Reading from last loop
+  unsigned long lastDebounceTime; // Timer for debounce
 };
 
 struct gamepadState
@@ -28,8 +31,8 @@ struct gamepadState
   // Button array
   inputMap buttons[buttonCount] =
   {
-    {32, BUTTON_14, false}, // L3
-    {33, BUTTON_15, false} // R3
+    {32, BUTTON_14, false, false, 0}, // L3
+    {33, BUTTON_15, false, false, 0} // R3
   };
 };
 
@@ -95,9 +98,30 @@ void readInputs()
   state.rawRY = analogRead(PIN_RY);
 
   // Read buttons
+  unsigned long currentMillis = millis();
+  
   for (int i = 0; i < buttonCount; i++)
   {
-    state.buttons[i].isPressed = (digitalRead(state.buttons[i].pin) == LOW);
+    // Read pin
+    bool reading = (digitalRead(state.buttons[i].pin) == LOW);
+
+    // If reading changes timer resets
+    if (reading != state.buttons[i].lastReading)
+    {
+      state.buttons[i].lastDebounceTime = currentMillis;
+    }
+
+    // If reading is stable update state
+    if ((currentMillis - state.buttons[i].lastDebounceTime) > debounceDelay)
+    {
+      if (reading != state.buttons[i].isPressed)
+      {
+        state.buttons[i].isPressed = reading;
+      }
+    }
+
+    // Save reading for next loop
+    state.buttons[i].lastReading = reading;
   }
 
 }
