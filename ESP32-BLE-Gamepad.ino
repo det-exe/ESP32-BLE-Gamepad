@@ -8,10 +8,10 @@
 #define debounceDelay 15 // 15ms debounce time
 
 // Stick Pin Definitions
-const int PIN_LX = 34;
-const int PIN_LY = 35;
-const int PIN_RX = 36;
-const int PIN_RY = 39;
+const int PIN_LX = 35;
+const int PIN_LY = 34;
+const int PIN_RX = 39;
+const int PIN_RY = 36;
 
 struct inputMap 
 {
@@ -99,7 +99,6 @@ void readInputs()
 
   // Read buttons
   unsigned long currentMillis = millis();
-  
   for (int i = 0; i < buttonCount; i++)
   {
     // Read pin
@@ -130,10 +129,10 @@ void processInputs()
 {
   // Convert ESP32 12-bit input (0-4095) to standard 16-bit Gamepad output (0-32737)
   // Left stick
-  state.outLX = map(state.rawLX, 0, adcMAX, 0, gamepadMAX);
+  state.outLX = map(state.rawLX, 0, adcMAX, gamepadMAX, 0);
   state.outLY = map(state.rawLY, 0, adcMAX, 0, gamepadMAX);
   // Right stick
-  state.outRX = map(state.rawRX, 0, adcMAX, 0, gamepadMAX);
+  state.outRX = map(state.rawRX, 0, adcMAX, gamepadMAX, 0);
   state.outRY = map(state.rawRY, 0, adcMAX, 0, gamepadMAX);
 }
 
