@@ -1,32 +1,47 @@
 #include <Arduino.h>
 #include <BleGamepad.h>
 
+#define adcMAX 4095 // ESP32 max input resolution (12-bits)
+#define gamepadMAX 32767 // Standard gamepad output (signed 16-bit)
+#define pollingInterval 20 // 20ms = 50Hz polling rate
+#define buttonCount 2 // Number of buttons, to be updated as buttons are added (L3, R3)
+
+// Stick Pin Definitions
+const int PIN_LX = 34;
+const int PIN_LY = 35;
+const int PIN_RX = 36;
+const int PIN_RY = 39;
+
+struct inputMap 
+{
+  const uint8_t pin; // Associated pin on ESP32
+  const uint8_t hidMap; // Button ID sent to PC
+  bool isPressed; // Pressed or not pressed
+};
+
+struct gamepadState
+{
+  // Analogue stick axes
+  int rawLX, rawLY, rawRX, rawRY;
+  int outLX, outLY, outRX, outRY;
+
+  // Button array
+  inputMap buttons[buttonCount] =
+  {
+    {32, BUTTON_14, false}, // L3
+    {33, BUTTON_15, false} // R3
+  };
+};
+
 // Bluetooth device name
+gamepadState state;
 BleGamepad bleGamepad("ESP32 Gamepad", "dev-exe", 100);
 
-// Pin definitions
-// Left analogue stick
-const int pinLX = 34;
-const int pinLY = 35;
-#define BTN_L_PIN 32
-
-// Right analogue stick
-const int pinRX = 36;
-const int pinRY = 39;
-#define BTN_R_PIN 33
-
-// Global variables
-// Raw hardware readings (0-4095)
-int rawLX, rawLY, rawRX, rawRY;
-// Mapped readings (0-32737)
-int outLX, outLY, outRX, outRY;
-
 // For serial monitor in Arduino IDE (to be removed)
-unsigned long lastSerialTime = 0;
-const int serialInterval = 500;
+unsigned long lastLoopTime = 0;
 
 // Function prototypes
-void readHardware();
+void readInputs();
 void processInputs();
 void sendReport();
 void printDebug();
@@ -40,8 +55,10 @@ void setup()
   // Hardware setup
   // Enables pullup resistor for BTN_L and R pins, prevents floating
   // Default state is HIGH, button press causes LOW
-  pinMode(BTN_L_PIN, INPUT_PULLUP);
-  pinMode(BTN_R_PIN, INPUT_PULLUP);
+  for (int i = 0; i < buttonCount; i++)
+  {
+    pinMode(state.buttons[i].pin, INPUT_PULLUP);
+  }
 
   // Bluetooth HID configuration
   BleGamepadConfiguration bleGamepadConfig;
@@ -53,51 +70,89 @@ void setup()
 
 void loop() 
 {
-  if (bleGamepad.isConnected())
-  {
-    readHardware();
-    processInputs();
-    sendReport();
-    printDebug();
-  }
+  unsigned long currentMillis = millis();
 
-  delay(20);
+  if (currentMillis - lastLoopTime >= pollingInterval)
+  {
+    lastLoopTime = currentMillis;
+
+    if (bleGamepad.isConnected())
+    {
+      readInputs();
+      processInputs();
+      sendReport();
+      printDebug();
+    }
+  }
 }
 
-void readHardware()
+void readInputs()
 {
   // Read analogue sticks
-  rawLX = analogRead(pinLX);
-  rawLY = analogRead(pinLY);
-  rawRX = analogRead(pinRX);
-  rawRY = analogRead(pinRY);
+  state.rawLX = analogRead(PIN_LX);
+  state.rawLY = analogRead(PIN_LY);
+  state.rawRX = analogRead(PIN_RX);
+  state.rawRY = analogRead(PIN_RY);
+
+  // Read buttons
+  for (int i = 0; i < buttonCount; i++)
+  {
+    state.buttons[i].isPressed = (digitalRead(state.buttons[i].pin) == LOW);
+  }
+
 }
 
 void processInputs()
 {
   // Convert ESP32 12-bit input (0-4095) to standard 16-bit Gamepad output (0-32737)
   // Left stick
-  outLX = map(rawLX, 0, 4095, 0, 32737);
-  outLY = map(rawLY, 0, 4095, 0, 32737);
+  state.outLX = map(state.rawLX, 0, adcMAX, 0, gamepadMAX);
+  state.outLY = map(state.rawLY, 0, adcMAX, 0, gamepadMAX);
   // Right stick
-  outRX = map(rawRX, 0, 4095, 0, 32737);
-  outRY = map(rawRY, 0, 4095, 0, 32737);
+  state.outRX = map(state.rawRX, 0, adcMAX, 0, gamepadMAX);
+  state.outRY = map(state.rawRY, 0, adcMAX, 0, gamepadMAX);
 }
 
 void sendReport()
 {
   // Communication with PC
-  bleGamepad.setLeftThumb(outLX, outLY);
-  bleGamepad.setRX(outRX);
-  bleGamepad.setRY(outRY);
+  // Send axes
+  bleGamepad.setLeftThumb(state.outLX, state.outLY);
+  bleGamepad.setRX(state.outRX);
+  bleGamepad.setRY(state.outRY);
+
+  // Send buttons
+  for (int i = 0; i < buttonCount; i++)
+  {
+    if (state.buttons[i].isPressed)
+    {
+      bleGamepad.press(state.buttons[i].hidMap);
+    }
+    else
+    {
+      bleGamepad.release(state.buttons[i].hidMap);
+    }
+  }
 }
 
-void printDebug()
-{
-  if (millis() - lastSerialTime > serialInterval)
-  {
-    Serial.print("L: "); Serial.print(rawLX); Serial.print(","); Serial.print(rawLY);
-    Serial.print("\t R: "); Serial.print(rawRX); Serial.print(","); Serial.println(rawRY);
-    lastSerialTime = millis();
-  }
+void printDebug() {
+    static unsigned long lastPrint = 0;
+    if (millis() - lastPrint > 500) { // Updates twice a second
+        // Left Stick
+        Serial.print("L: "); 
+        Serial.print(state.outLX); Serial.print(","); 
+        Serial.print(state.outLY);
+        Serial.print(" [L3:"); Serial.print(state.buttons[0].isPressed); Serial.print("]");
+
+        // Spacer tab
+        Serial.print("\t"); 
+
+        // Right Stick
+        Serial.print("R: "); 
+        Serial.print(state.outRX); Serial.print(","); 
+        Serial.print(state.outRY);
+        Serial.print(" [R3:"); Serial.print(state.buttons[1].isPressed); Serial.println("]");
+        
+        lastPrint = millis();
+    }
 }
