@@ -248,11 +248,11 @@ void checkSerialCommands()
     // 'c' to auto calibrate
     if (cmd == 'c') calibrateCenters();
 
-    // 'd' -> manually change deadzone
+    // 'd *value*' to manually change deadzone
     if (cmd == 'd') 
     {
       int newDZ = Serial.parseInt();
-      if (newDZ > 0) 
+      if (newDZ >= 0) 
       {
         innerDeadzone = newDZ;
         prefs.putInt("dz", innerDeadzone);
