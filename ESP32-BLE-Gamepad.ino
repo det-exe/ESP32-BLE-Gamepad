@@ -61,6 +61,10 @@ void readInputs();
 void processInputs();
 void sendReport();
 void printDebug();
+void checkSerialCommands();
+void calibrateCenters(); 
+void loadPreferences();
+int mapSplit(int val, int inMin, int inCenter, int inMax, int outMin, int outCenter, int outMax);
 
 void loadPreferences() 
 {
