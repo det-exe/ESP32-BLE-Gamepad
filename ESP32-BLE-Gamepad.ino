@@ -2,9 +2,9 @@
 #include <BleGamepad.h>
 #include <Preferences.h>
 
-const int adcMAX = 2048; // ESP32 max input resolution (12-bits)
+const int adcMAX = 4095; // ESP32 max input resolution (12-bits)
 const int gamepadMAX = 32767; // Standard gamepad output (signed 16-bit)
-const int pollingInterval = 20; // 20ms = 50Hz polling rate
+const int pollingInterval = 8; // 8ms = 125Hz polling rate
 const int buttonCount = 2; // Number of buttons, to be updated as buttons are added (L3, R3)
 const int debounceDelay = 15; // 15ms debounce time
 const int outerDeadzone = 75; // Clamps to max before physical limit
@@ -67,6 +67,7 @@ void checkSerialCommands();
 void calibrateCenters(); 
 void loadPreferences();
 int mapSplit(int val, int inMin, int inCenter, int inMax, int outMin, int outCenter, int outMax);
+void circulariseSticks(int &x, int &y);
 
 void loadPreferences() 
 {
@@ -131,7 +132,7 @@ void readInputs()
   // Read analogue sticks
   // Accumulates samples to average out electrical noise
   long sumLX = 0, sumLY = 0, sumRX = 0, sumRY = 0;
-  const int samples = 20; // Sample count for smoothing
+  const int samples = 50; // Sample count for smoothing
 
   for (int i = 0; i < samples; i++) 
   {
@@ -175,10 +176,35 @@ void readInputs()
   }
 }
 
+void circulariseSticks(int &x, int &y)
+{
+  // Define centre and radius based on max output
+  float center = gamepadMAX / 2.0;
+  float maxRadius = gamepadMAX / 2.0;
+
+  // Shift coordinates to centre origin
+  float centeredX = x - center;
+  float centeredY = y - center;
+
+  // Calculate vector magnitude
+  float magnitude = hypot(centeredX, centeredY);
+
+  // Clamp vector to max radius if outside bounds
+  if (magnitude > maxRadius)
+  {
+    float scale = maxRadius / magnitude;
+    centeredX *= scale;
+    centeredY *= scale;
+
+    // Restore original coordinate system
+    x = (int)(centeredX + center);
+    y = (int)(centeredY + center);
+  }
+}
+
 void processInputs()
 {
   // Convert ESP32 12-bit input (0-4095) to standard 16-bit Gamepad output (0-32737)
-
   int mid = gamepadMAX / 2;
 
   // Left Stick
@@ -188,6 +214,10 @@ void processInputs()
   // Right Stick
   state.outRX = mapSplit(state.rawRX, 0, centerRX, adcMAX, gamepadMAX, mid, 0);
   state.outRY = mapSplit(state.rawRY, 0, centerRY, adcMAX, 0, mid, gamepadMAX);
+
+  // Apply circularisation
+  circulariseSticks(state.outLX, state.outLY);
+  circulariseSticks(state.outRX, state.outRY);
 }
 
 void calibrateCenters() 
