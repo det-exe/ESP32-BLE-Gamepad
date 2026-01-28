@@ -2,7 +2,7 @@
 #include <BleGamepad.h>
 #include <Preferences.h>
 
-const int adcMAX = 4095; // ESP32 max input resolution (12-bits)
+const int adcMAX = 2048; // ESP32 max input resolution (12-bits)
 const int gamepadMAX = 32767; // Standard gamepad output (signed 16-bit)
 const int pollingInterval = 20; // 20ms = 50Hz polling rate
 const int buttonCount = 2; // Number of buttons, to be updated as buttons are added (L3, R3)
@@ -15,11 +15,11 @@ const int PIN_LY = 34;
 const int PIN_RX = 39;
 const int PIN_RY = 36;
 
-// Stick axis centre for calibration (default value = 4095/2 = 2048)
-int centerLX = 2048;
-int centerLY = 2048;
-int centerRX = 2048;
-int centerRY = 2048;
+// Stick axis centre for calibration (default value = adcMAX / 2)
+int centerLX = adcMAX / 2;
+int centerLY = adcMAX / 2;
+int centerRX = adcMAX / 2;
+int centerRY = adcMAX / 2;
 
 int innerDeadzone;
 
@@ -48,8 +48,10 @@ struct gamepadState
 
 // Global instance to store current gamepad state
 gamepadState state;
+
 // Initialise BLE gamepad with name, manufacturer and initial battery level
 BleGamepad bleGamepad("ESP32 Gamepad", "dev-exe", 100);
+
 // Enables persistant storage for calibration data
 Preferences prefs;
 
@@ -71,10 +73,10 @@ void loadPreferences()
   prefs.begin("gamepad", false); // False meaning storage in R/W mode
   
   // Load saved values or use defaults
-  centerLX = prefs.getInt("Lx", 2048);
-  centerLY = prefs.getInt("Ly", 2048);
-  centerRX = prefs.getInt("Rx", 2048);
-  centerRY = prefs.getInt("Ry", 2048);
+  centerLX = prefs.getInt("Lx", adcMAX / 2);
+  centerLY = prefs.getInt("Ly", adcMAX / 2);
+  centerRX = prefs.getInt("Rx", adcMAX / 2);
+  centerRY = prefs.getInt("Ry", adcMAX / 2);
   innerDeadzone = prefs.getInt("dz", 150);
   
   Serial.println("Calibration Loaded");
@@ -85,7 +87,7 @@ void setup()
   // For serial monitor in Arduino IDE
   Serial.begin(115200);
   Serial.println("Start: ");
-
+  analogSetAttenuation(ADC_11db);
   loadPreferences();
 
   // Hardware setup
@@ -177,7 +179,7 @@ void processInputs()
 {
   // Convert ESP32 12-bit input (0-4095) to standard 16-bit Gamepad output (0-32737)
 
-  int mid = 16383;
+  int mid = gamepadMAX / 2;
 
   // Left Stick
   state.outLX = mapSplit(state.rawLX, 0, centerLX, adcMAX, gamepadMAX, mid, 0);
@@ -190,7 +192,7 @@ void processInputs()
 
 void calibrateCenters() 
 {
-    Serial.println("Calibrating...");
+    Serial.println("Calibrating.");
     delay(1000); // Give user time to let go of sticks
     
     long tLX = 0, tLY = 0, tRX = 0, tRY = 0;
@@ -292,21 +294,19 @@ void sendReport()
 
 void printDebug() {
     static unsigned long lastPrint = 0;
-    if (millis() - lastPrint > 500) { // Updates twice a second
-        // Left Stick
-        Serial.print("L: "); 
-        Serial.print(state.outLX); Serial.print(","); 
+    if (millis() - lastPrint > 300) { 
+        // Debug: Show RAW input vs MAPPED output
+        Serial.print("LX [Raw:");
+        Serial.print(state.rawLX); // Watch this number!
+        Serial.print(" -> Map:");
+        Serial.print(state.outLX);
+        Serial.print("]");
+
+        Serial.print("  |  LY [Raw:");
+        Serial.print(state.rawLY);
+        Serial.print(" -> Map:");
         Serial.print(state.outLY);
-        Serial.print(" [L3:"); Serial.print(state.buttons[0].isPressed); Serial.print("]");
-
-        // Spacer tab
-        Serial.print("\t"); 
-
-        // Right Stick
-        Serial.print("R: "); 
-        Serial.print(state.outRX); Serial.print(","); 
-        Serial.print(state.outRY);
-        Serial.print(" [R3:"); Serial.print(state.buttons[1].isPressed); Serial.println("]");
+        Serial.println("]");
         
         lastPrint = millis();
     }
