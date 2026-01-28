@@ -2,6 +2,7 @@
 #include <BleGamepad.h>
 #include <Preferences.h>
 
+// Defining constants
 const int adcMAX = 4095; // ESP32 max input resolution (12-bits)
 const int gamepadMAX = 32767; // Standard gamepad output (signed 16-bit)
 const int pollingInterval = 8; // 8ms = 125Hz polling rate
@@ -226,7 +227,7 @@ void calibrateCenters()
     delay(1000); // Give user time to let go of sticks
     
     long tLX = 0, tLY = 0, tRX = 0, tRY = 0;
-    int s = 100; // Number of samples to take
+    int s = 20; // Number of samples to take
 
     // Take readings and sum them up
     for(int i=0; i<s; i++) 
