@@ -7,8 +7,6 @@ Preferences prefs;
 int centerLX, centerLY, centerRX, centerRY;
 int innerDeadzone;
 
-// --- INTERNAL HELPERS ---
-
 int mapSplit(int val, int inMin, int inCenter, int inMax, int outMin, int outCenter, int outMax)
 {
   // Inner deadzone, returns center if input within threshold
@@ -58,8 +56,6 @@ void constrainToCircle(int *axisX, int *axisY)
     *axisY = (int)(centeredY + center);
   }
 }
-
-// --- EXPORTED FUNCTIONS ---
 
 void setupSticks()
 {
@@ -163,9 +159,9 @@ void printDebug(stickState &sticks)
   static unsigned long lastPrint = 0;
   if (millis() - lastPrint > 300)
   {
-    // Debug: Show RAW input vs MAPPED output
+    // Debug, shows RAW input vs MAPPED output
     Serial.print("LX [Raw:");
-    Serial.print(sticks.rawLX); // Watch this number!
+    Serial.print(sticks.rawLX);
     Serial.print(" -> Map:");
     Serial.print(sticks.outLX);
     Serial.print("]");

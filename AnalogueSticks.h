@@ -1,11 +1,11 @@
-#ifndef ANALOGUE_STICKS_H
+#ifndef ANALOGUE_STICKS_H  // "If not defined", prevents double referencing
 #define ANALOGUE_STICKS_H
 
 #include <Arduino.h>
 #include <Preferences.h>
 
 // Constants
-const int adcMax = 4095; // ESP32 max input resolution (12-bits)
+const int adcMax = 4095; // ESP32 max ADC resolution (12-bits)
 const int gamepadMax = 32767; // Standard gamepad output (signed 16-bit)
 const int centerVal = gamepadMax / 2;
 const int outerDeadzone = 50; 
