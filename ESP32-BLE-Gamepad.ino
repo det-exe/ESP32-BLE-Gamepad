@@ -1,30 +1,13 @@
 #include <Arduino.h>
 #include <BleGamepad.h>
-#include <Preferences.h>
+#include "AnalogueSticks.h"
 
-// Defining constants
-const int adcMAX = 4095; // ESP32 max input resolution (12-bits)
-const int gamepadMAX = 32767; // Standard gamepad output (signed 16-bit)
-const int pollingInterval = 8; // 8ms = 125Hz polling rate
-const int buttonCount = 2; // Number of buttons, to be updated as buttons are added (L3, R3)
 const int debounceDelay = 15; // 15ms debounce time
-const int outerDeadzone = 75; // Clamps to max before physical limit
+const int pollingInterval = 8; // 8ms = 125Hz polling rate
+const int buttonCount = 2; // Number of buttons, to be updated as buttons are added
+// L3, R3
 
-// Stick pin definitions
-const int PIN_LX = 35;
-const int PIN_LY = 34;
-const int PIN_RX = 39;
-const int PIN_RY = 36;
-
-// Stick axis centre for calibration (default value = adcMAX / 2)
-int centerLX = adcMAX / 2;
-int centerLY = adcMAX / 2;
-int centerRX = adcMAX / 2;
-int centerRY = adcMAX / 2;
-
-int innerDeadzone;
-
-struct inputMap 
+struct inputMap
 {
   const uint8_t pin; // Associated pin on ESP32
   const uint8_t hidMap; // Button ID sent to PC
@@ -33,71 +16,36 @@ struct inputMap
   unsigned long lastDebounceTime; // Timer for debounce
 };
 
-struct gamepadState
+// Global instances
+stickState sticks; // From AnalogueSticks.h
+inputMap buttons[buttonCount] =
 {
-  // Analogue stick axes
-  int rawLX, rawLY, rawRX, rawRY;
-  int outLX, outLY, outRX, outRY;
-
-  // Button array
-  inputMap buttons[buttonCount] =
-  {
-    {32, BUTTON_14, false, false, 0}, // L3
-    {33, BUTTON_15, false, false, 0} // R3
-  };
+  {32, BUTTON_14, false, false, 0}, // L3
+  {33, BUTTON_15, false, false, 0} // R3
 };
-
-// Global instance to store current gamepad state
-gamepadState state;
 
 // Initialise BLE gamepad with name, manufacturer and initial battery level
 BleGamepad bleGamepad("ESP32 Gamepad", "dev-exe", 100);
 
-// Enables persistant storage for calibration data
-Preferences prefs;
-
 // For serial monitor in Arduino IDE (to be removed)
 unsigned long lastLoopTime = 0;
 
-// Function prototypes
-void readInputs();
-void processInputs();
-void sendReport();
-void printDebug();
-void checkSerialCommands();
-void calibrateCenters(); 
-void loadPreferences();
-int mapSplit(int val, int inMin, int inCenter, int inMax, int outMin, int outCenter, int outMax);
-void circulariseSticks(int &x, int &y);
-
-void loadPreferences() 
-{
-  prefs.begin("gamepad", false); // False meaning storage in R/W mode
-  
-  // Load saved values or use defaults
-  centerLX = prefs.getInt("Lx", adcMAX / 2);
-  centerLY = prefs.getInt("Ly", adcMAX / 2);
-  centerRX = prefs.getInt("Rx", adcMAX / 2);
-  centerRY = prefs.getInt("Ry", adcMAX / 2);
-  innerDeadzone = prefs.getInt("dz", 150);
-  
-  Serial.println("Calibration Loaded");
-}
-
-void setup() 
+void setup()
 {
   // For serial monitor in Arduino IDE
   Serial.begin(115200);
   Serial.println("Start: ");
   analogSetAttenuation(ADC_11db);
-  loadPreferences();
+
+  // Initialise split stick logic
+  setupSticks();
 
   // Hardware setup
   // Enables pullup resistor for BTN_L and R pins, prevents floating
   // Default state is HIGH, button press causes LOW
   for (int i = 0; i < buttonCount; i++)
   {
-    pinMode(state.buttons[i].pin, INPUT_PULLUP);
+    pinMode(buttons[i].pin, INPUT_PULLUP);
   }
 
   // Bluetooth HID configuration
@@ -108,237 +56,70 @@ void setup()
   bleGamepad.begin(&bleGamepadConfig);
 }
 
-void loop() 
+void loop()
 {
-  checkSerialCommands(); // UART communication
-
-  unsigned long currentMillis = millis();
-
-  if (currentMillis - lastLoopTime >= pollingInterval)
-  {
-    lastLoopTime = currentMillis;
-
-    if (bleGamepad.isConnected())
-    {
-      readInputs();
-      processInputs();
-      sendReport();
-      printDebug();
-    }
-  }
-}
-
-void readInputs()
-{
-  // Read analogue sticks
-  // Accumulates samples to average out electrical noise
-  long sumLX = 0, sumLY = 0, sumRX = 0, sumRY = 0;
-  const int samples = 50; // Sample count for smoothing
-
-  for (int i = 0; i < samples; i++) 
-  {
-      sumLX += analogRead(PIN_LX);
-      sumLY += analogRead(PIN_LY);
-      sumRX += analogRead(PIN_RX);
-      sumRY += analogRead(PIN_RY);
-  }
-
-  // Calculates average reading
-  state.rawLX = sumLX / samples;
-  state.rawLY = sumLY / samples;
-  state.rawRX = sumRX / samples;
-  state.rawRY = sumRY / samples;
-
-  // Read buttons
-  unsigned long currentMillis = millis();
-  for (int i = 0; i < buttonCount; i++)
-  {
-    // Read pin
-    bool reading = (digitalRead(state.buttons[i].pin) == LOW);
-
-    // Reset debounce timer if signal is unstable
-    if (reading != state.buttons[i].lastReading)
-    {
-      state.buttons[i].lastDebounceTime = currentMillis;
-    }
-
-    // Check if signal is stable based on set debounce threshold
-    if ((currentMillis - state.buttons[i].lastDebounceTime) > debounceDelay)
-    {
-      // Update state only if stable reading differs from current state
-      if (reading != state.buttons[i].isPressed)
-      {
-        state.buttons[i].isPressed = reading;
-      }
-    }
-
-    // Save reading for next loop
-    state.buttons[i].lastReading = reading;
-  }
-}
-
-void circulariseSticks(int &x, int &y)
-{
-  // Define centre and radius based on max output
-  float center = gamepadMAX / 2.0;
-  float maxRadius = gamepadMAX / 2.0;
-
-  // Shift coordinates to centre origin
-  float centeredX = x - center;
-  float centeredY = y - center;
-
-  // Calculate vector magnitude
-  float magnitude = hypot(centeredX, centeredY);
-
-  // Clamp vector to max radius if outside bounds
-  if (magnitude > maxRadius)
-  {
-    float scale = maxRadius / magnitude;
-    centeredX *= scale;
-    centeredY *= scale;
-
-    // Restore original coordinate system
-    x = (int)(centeredX + center);
-    y = (int)(centeredY + center);
-  }
-}
-
-void processInputs()
-{
-  // Convert ESP32 12-bit input (0-4095) to standard 16-bit Gamepad output (0-32737)
-  int mid = gamepadMAX / 2;
-
-  // Left Stick
-  state.outLX = mapSplit(state.rawLX, 0, centerLX, adcMAX, gamepadMAX, mid, 0);
-  state.outLY = mapSplit(state.rawLY, 0, centerLY, adcMAX, 0, mid, gamepadMAX);
-
-  // Right Stick
-  state.outRX = mapSplit(state.rawRX, 0, centerRX, adcMAX, gamepadMAX, mid, 0);
-  state.outRY = mapSplit(state.rawRY, 0, centerRY, adcMAX, 0, mid, gamepadMAX);
-
-  // Apply circularisation
-  circulariseSticks(state.outLX, state.outLY);
-  circulariseSticks(state.outRX, state.outRY);
-}
-
-void calibrateCenters() 
-{
-    Serial.println("Calibrating.");
-    delay(1000); // Give user time to let go of sticks
-    
-    long tLX = 0, tLY = 0, tRX = 0, tRY = 0;
-    int s = 20; // Number of samples to take
-
-    // Take readings and sum them up
-    for(int i=0; i<s; i++) 
-    {
-        tLX += analogRead(PIN_LX);
-        tLY += analogRead(PIN_LY);
-        tRX += analogRead(PIN_RX);
-        tRY += analogRead(PIN_RY);
-        delay(2); // Small delay to ensure distinct readings
-    }
-
-    // Calculate average (sum / samples)
-    centerLX = tLX / s;
-    centerLY = tLY / s;
-    centerRX = tRX / s;
-    centerRY = tRY / s;
-
-    // Save to Permanent Memory
-    prefs.putInt("Lx", centerLX);
-    prefs.putInt("Ly", centerLY);
-    prefs.putInt("Rx", centerRX);
-    prefs.putInt("Ry", centerRY);
-
-    Serial.println("Calibration complete.");
-}
-
-// Applies deadzones and mapping to raw input
-int mapSplit(int val, int inMin, int inCenter, int inMax, int outMin, int outCenter, int outMax) 
-{
-    // Inner deadzone, returns center if input within threshold
-    if (abs(val - inCenter) < innerDeadzone) return outCenter; 
-
-    // Clamps input to outer deadzone limits to prevent overflow
-    val = constrain(val, inMin + outerDeadzone, inMax - outerDeadzone);
-
-    // Asymmetric mapping splits range at calibration center
-    if (val <= inCenter) 
-    {
-        // Lower half mapping
-        return map(val, inMin + outerDeadzone, inCenter, outMin, outCenter);
-    } 
-    else 
-    {
-        // Upper half mapping
-        return map(val, inCenter, inMax - outerDeadzone, outCenter, outMax);
-    }
-}
-
-void checkSerialCommands() 
-{
-  if (Serial.available()) 
+  // Check for serial commands
+  if (Serial.available())
   {
     char cmd = Serial.read();
-
     // 'c' to auto calibrate
-    if (cmd == 'c') calibrateCenters();
-
+    if (cmd == 'c') calibrateSticks();
     // 'd *value*' to manually change deadzone
-    if (cmd == 'd') 
+    if (cmd == 'd') setInnerDeadzone(Serial.parseInt());
+  }
+
+  unsigned long currentTime = millis();
+  if (currentTime - lastLoopTime >= pollingInterval)
+  {
+    lastLoopTime = currentTime;
+    if (bleGamepad.isConnected())
     {
-      int newDZ = Serial.parseInt();
-      if (newDZ >= 0) 
+      // Stick Logic
+      readSticks(sticks);
+      processSticks(sticks);
+      printDebug(sticks);
+
+      // Button Logic
+      for (int i = 0; i < buttonCount; i++)
       {
-        innerDeadzone = newDZ;
-        prefs.putInt("dz", innerDeadzone);
-        Serial.print("Inner Deadzone Updated: "); Serial.println(innerDeadzone);
+        // Read pin
+        bool reading = (digitalRead(buttons[i].pin) == LOW);
+        // Reset debounce timer if signal is unstable
+        if (reading != buttons[i].lastReading)
+        {
+          buttons[i].lastDebounceTime = currentTime;
+        }
+
+        // Check if signal is stable based on set debounce threshold
+        if ((currentTime - buttons[i].lastDebounceTime) > debounceDelay)
+        {
+          // Update state only if stable reading differs from current state
+          if (reading != buttons[i].isPressed)
+          {
+            buttons[i].isPressed = reading;
+          }
+        }
+
+        // Save reading for next loop
+        buttons[i].lastReading = reading;
+      }
+
+      // Send Report
+      bleGamepad.setLeftThumb(sticks.outLX, sticks.outLY);
+      bleGamepad.setRX(sticks.outRX);
+      bleGamepad.setRY(sticks.outRY);
+
+      for (int i = 0; i < buttonCount; i++)
+      {
+        if (buttons[i].isPressed)
+        {
+          bleGamepad.press(buttons[i].hidMap);
+        }
+        else
+        {
+          bleGamepad.release(buttons[i].hidMap);
+        }
       }
     }
   }
-}
-
-void sendReport()
-{
-  // Communication with PC
-  // Update characteristics and notify host
-
-  // Send axes
-  bleGamepad.setLeftThumb(state.outLX, state.outLY);
-  bleGamepad.setRX(state.outRX);
-  bleGamepad.setRY(state.outRY);
-
-  // Send buttons
-  for (int i = 0; i < buttonCount; i++)
-  {
-    if (state.buttons[i].isPressed)
-    {
-      bleGamepad.press(state.buttons[i].hidMap);
-    }
-    else
-    {
-      bleGamepad.release(state.buttons[i].hidMap);
-    }
-  }
-}
-
-void printDebug() {
-    static unsigned long lastPrint = 0;
-    if (millis() - lastPrint > 300) { 
-        // Debug: Show RAW input vs MAPPED output
-        Serial.print("LX [Raw:");
-        Serial.print(state.rawLX); // Watch this number!
-        Serial.print(" -> Map:");
-        Serial.print(state.outLX);
-        Serial.print("]");
-
-        Serial.print("  |  LY [Raw:");
-        Serial.print(state.rawLY);
-        Serial.print(" -> Map:");
-        Serial.print(state.outLY);
-        Serial.println("]");
-        
-        lastPrint = millis();
-    }
 }
