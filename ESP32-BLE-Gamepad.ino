@@ -1,28 +1,13 @@
 #include <Arduino.h>
 #include <BleGamepad.h>
 #include "AnalogueSticks.h"
+#include "Buttons.h"
 
-const int debounceDelay = 15; // 15ms debounce time
 const int pollingInterval = 8; // 8ms = 125Hz polling rate
-const int buttonCount = 2; // Number of buttons, to be updated as buttons are added
 // L3, R3
-
-struct inputMap
-{
-  const uint8_t pin; // Associated pin on ESP32
-  const uint8_t hidMap; // Button ID sent to PC
-  bool isPressed; // Pressed or not pressed
-  bool lastReading; // Reading from last loop
-  unsigned long lastDebounceTime; // Timer for debounce
-};
 
 // Global instances
 stickState sticks; // From AnalogueSticks.h
-inputMap buttons[buttonCount] =
-{
-  {32, BUTTON_14, false, false, 0}, // L3
-  {33, BUTTON_15, false, false, 0} // R3
-};
 
 // Initialise BLE gamepad with name, manufacturer and initial battery level
 BleGamepad bleGamepad("ESP32 Gamepad", "dev-exe", 100);
@@ -39,6 +24,7 @@ void setup()
 
   // Initialise split stick logic
   setupSticks();
+  setupButtons();
 
   // Hardware setup
   // Enables pullup resistor for BTN_L and R pins, prevents floating
@@ -74,35 +60,13 @@ void loop()
     lastLoopTime = currentTime;
     if (bleGamepad.isConnected())
     {
-      // Stick Logic
+      // Stick logic
       readSticks(sticks);
       processSticks(sticks);
       printDebug(sticks);
 
       // Button Logic
-      for (int i = 0; i < buttonCount; i++)
-      {
-        // Read pin
-        bool reading = (digitalRead(buttons[i].pin) == LOW);
-        // Reset debounce timer if signal is unstable
-        if (reading != buttons[i].lastReading)
-        {
-          buttons[i].lastDebounceTime = currentTime;
-        }
-
-        // Check if signal is stable based on set debounce threshold
-        if ((currentTime - buttons[i].lastDebounceTime) > debounceDelay)
-        {
-          // Update state only if stable reading differs from current state
-          if (reading != buttons[i].isPressed)
-          {
-            buttons[i].isPressed = reading;
-          }
-        }
-
-        // Save reading for next loop
-        buttons[i].lastReading = reading;
-      }
+      readButtons();
 
       // Send Report
       bleGamepad.setLeftThumb(sticks.outLX, sticks.outLY);

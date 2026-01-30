@@ -3,9 +3,9 @@
 
 #include <Arduino.h>
 
-const int buttonCount = 2;
+const int buttonCount = 6;
 // Number of buttons, to be updated as buttons are added
-// L3, R3
+// Action (4) + L3, R3
 const int debounceDelay = 15; // 15ms debounce time
 
 struct inputMap
