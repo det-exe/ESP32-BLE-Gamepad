@@ -10,6 +10,13 @@
 - Set outer deadzone and configurable inner deadzone (currently via serial monitor)
 - Cubic response curves (tbd)
 
+### Buttons
+
+- Four action buttons (ABXY)
+- Direction Pad (D-Pad)
+- Menu buttons
+- Triggers
+
 ### Potential Ideas
 
 - GUI for configuration with QT and JSON 
