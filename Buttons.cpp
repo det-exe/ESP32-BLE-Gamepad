@@ -5,14 +5,14 @@
 inputMap buttons[buttonCount] =
 {
   // Action Buttons 
-  {25, BUTTON_1, false, false, 0}, // Action Down (A / Cross)
-  {26, BUTTON_2, false, false, 0}, // Action Right (B / Circle)
-  {14, BUTTON_4, false, false, 0}, // Action Left (X / Square)
-  {27, BUTTON_5, false, false, 0}, // Action Up (Y / Triangle)
+  {16, BUTTON_1, false, false, 0}, // Action Down (A / Cross)
+  {22, BUTTON_2, false, false, 0}, // Action Right (B / Circle)
+  {17, BUTTON_4, false, false, 0}, // Action Left (X / Square)
+  {18, BUTTON_5, false, false, 0}, // Action Up (Y / Triangle)
 
   // Stick Buttons
-  {32, BUTTON_14, false, false, 0}, // L3
-  {33, BUTTON_15, false, false, 0} // R3
+  {23, BUTTON_14, false, false, 0}, // L3
+  {19, BUTTON_15, false, false, 0} // R3
 };
 
 void setupButtons()

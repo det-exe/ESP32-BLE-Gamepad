@@ -12,10 +12,10 @@ const int outerDeadzone = 50;
 const int sampleCount = 50; 
 
 // Stick pin definitions
-const int pinLX = 35;
-const int pinLY = 34;
-const int pinRX = 39;
-const int pinRY = 36;
+const int pinLX = 32;
+const int pinLY = 33;
+const int pinRX = 34;
+const int pinRY = 39;
 
 struct stickState
 {

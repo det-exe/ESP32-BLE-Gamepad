@@ -6,7 +6,7 @@
 const int buttonCount = 6;
 // Number of buttons, to be updated as buttons are added
 // Action (4) + L3, R3
-const int debounceDelay = 15; // 15ms debounce time
+const int debounceDelay = 10; // 10ms debounce time
 
 struct inputMap
 {
