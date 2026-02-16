@@ -1,25 +1,32 @@
 #include "Buttons.h"
-#include <BleGamepad.h> // Required for BUTTON_14 / BUTTON_15 constants
+// Include header required for button constants
+#include <BleGamepad.h> 
 
-// Global button array definition
+// Define global button array
 inputMap buttons[buttonCount] =
 {
-  // Action Buttons 
-  {16, BUTTON_1, false, false, 0}, // Action Down (A / Cross)
-  {22, BUTTON_2, false, false, 0}, // Action Right (B / Circle)
-  {17, BUTTON_4, false, false, 0}, // Action Left (X / Square)
-  {18, BUTTON_5, false, false, 0}, // Action Up (Y / Triangle)
+  // Define action buttons 
+  // Define action down button mapping A or Cross
+  {16, BUTTON_1, false, false, 0},
+  // Define action right button mapping B or Circle
+  {22, BUTTON_2, false, false, 0},
+  // Define action left button mapping X or Square
+  {17, BUTTON_4, false, false, 0},
+  // Define action up button mapping Y or Triangle
+  {18, BUTTON_5, false, false, 0},
 
-  // Stick Buttons
-  {23, BUTTON_14, false, false, 0}, // L3
-  {19, BUTTON_15, false, false, 0} // R3
+  // Define stick buttons
+  // Define left stick click
+  {23, BUTTON_14, false, false, 0},
+  // Define right stick click
+  {19, BUTTON_15, false, false, 0}
 };
 
 void setupButtons()
 {
-  // Hardware setup
-  // Enables pullup resistor for BTN_L and R pins, prevents floating
-  // Default state is HIGH, button press causes LOW
+  // Configure hardware pins
+  // Enable pullup resistors for all button pins to prevent floating signals
+  // Establish default HIGH state where physical press causes LOW signal
   for (int i = 0; i < buttonCount; i++)
   {
     pinMode(buttons[i].pin, INPUT_PULLUP);
@@ -30,11 +37,12 @@ void readButtons()
 {
   unsigned long currentTime = millis();
 
-  // Button Logic
+  // Process hardware button states
   for (int i = 0; i < buttonCount; i++)
   {
-    // Read pin
+    // Read physical pin state
     bool reading = (digitalRead(buttons[i].pin) == LOW);
+
     // Reset debounce timer if signal is unstable
     if (reading != buttons[i].lastReading)
     {

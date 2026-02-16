@@ -1,33 +1,35 @@
 #include "AnalogueSticks.h"
 
-// Enables persistant storage for calibration data
+// Enable persistent non-volatile storage for calibration data
 Preferences prefs;
 
-// Stick axis centre for calibration
+// Define stick axis centre variables for calibration
 int centerLX, centerLY, centerRX, centerRY;
 int innerDeadzone;
 
+// Map raw value across split ranges with deadzone limits
 int mapSplit(int val, int inMin, int inCenter, int inMax, int outMin, int outCenter, int outMax)
 {
-  // Inner deadzone, returns center if input within threshold
+  // Return centre coordinate if input falls within inner deadzone threshold
   if (abs(val - inCenter) < innerDeadzone) return outCenter;
 
-  // Clamps input to outer deadzone limits to prevent overflow
+  // Clamp input to outer deadzone limits to prevent overflow
   val = constrain(val, inMin + outerDeadzone, inMax - outerDeadzone);
 
-  // Asymmetric mapping splits range at calibration center
+  // Apply asymmetric mapping split at calibration centre
   if (val <= inCenter)
   {
-    // Lower half mapping
+    // Map lower half range
     return map(val, inMin + outerDeadzone, inCenter, outMin, outCenter);
   }
   else
   {
-    // Upper half mapping
+    // Map upper half range
     return map(val, inCenter, inMax - outerDeadzone, outCenter, outMax);
   }
 }
 
+// Constrain coordinate output to circular boundary
 void constrainToCircle(int *axisX, int *axisY)
 {
   // Define centre and radius based on max output
@@ -59,14 +61,17 @@ void constrainToCircle(int *axisX, int *axisY)
 
 void setupSticks()
 {
-  prefs.begin("gamepad", false); // False meaning storage in R/W mode
+  // Initialise preferences in read and write mode
+  prefs.begin("gamepad", false); 
 
-  // Load saved values or use defaults
+  // Load saved values or apply defaults
   centerLX = prefs.getInt("Lx", adcMax / 2);
   centerLY = prefs.getInt("Ly", adcMax / 2);
   centerRX = prefs.getInt("Rx", adcMax / 2);
   centerRY = prefs.getInt("Ry", adcMax / 2);
-  innerDeadzone = prefs.getInt("dz", 150); // Default 150
+  
+  // Apply default inner deadzone threshold
+  innerDeadzone = prefs.getInt("dz", 150);
 
   Serial.println("Sticks Initialised & Calibration Loaded");
 }
@@ -74,7 +79,7 @@ void setupSticks()
 void readSticks(stickState &sticks)
 {
   // Read analogue sticks
-  // Accumulates samples to average out electrical noise
+  // Accumulate samples to average out electrical noise
   long sumLX = 0, sumLY = 0, sumRX = 0, sumRY = 0;
 
   for (int i = 0; i < sampleCount; i++)
@@ -85,7 +90,7 @@ void readSticks(stickState &sticks)
     sumRY += analogRead(pinRY);
   }
 
-  // Calculates average reading
+  // Calculate average reading
   sticks.rawLX = sumLX / sampleCount;
   sticks.rawLY = sumLY / sampleCount;
   sticks.rawRX = sumRX / sampleCount;
@@ -94,14 +99,15 @@ void readSticks(stickState &sticks)
 
 void processSticks(stickState &sticks)
 {
-  // Convert ESP32 12-bit input (0-4095) to standard 16-bit Gamepad output (0-32767)
+  // Calculate midpoint baseline for standard gamepad output
   int mid = gamepadMax / 2;
 
-  // Left Stick
+  // Invert Y axis mapping to comply with standard HID gamepad orientation
+  // Map left stick
   sticks.outLX = mapSplit(sticks.rawLX, 0, centerLX, adcMax, gamepadMax, mid, 0);
   sticks.outLY = mapSplit(sticks.rawLY, 0, centerLY, adcMax, 0, mid, gamepadMax);
 
-  // Right Stick
+  // Map right stick
   sticks.outRX = mapSplit(sticks.rawRX, 0, centerRX, adcMax, gamepadMax, mid, 0);
   sticks.outRY = mapSplit(sticks.rawRY, 0, centerRY, adcMax, 0, mid, gamepadMax);
 
@@ -113,29 +119,31 @@ void processSticks(stickState &sticks)
 void calibrateSticks()
 {
   Serial.println("Calibrating.");
-  delay(1000); // Give user time to let go of sticks
+  // Pause execution to allow physical stick release
+  delay(1000); 
 
   long tLX = 0, tLY = 0, tRX = 0, tRY = 0;
+  // Define sample count for calibration average
   int s = 50;
 
-  // Take readings and sum them up
+  // Accumulate sample readings
   for (int i = 0; i < s; i++)
   {
     tLX += analogRead(pinLX);
     tLY += analogRead(pinLY);
     tRX += analogRead(pinRX);
     tRY += analogRead(pinRY);
-    delay(2);
-    // Small delay to ensure distinct readings
+    // Pause briefly to ensure distinct readings
+    delay(2); 
   }
 
-  // Calculate average (sum / samples)
+// Calculate average reading across calibration sample count
   centerLX = tLX / s;
   centerLY = tLY / s;
   centerRX = tRX / s;
   centerRY = tRY / s;
 
-  // Save to Permanent Memory
+  // Save calculated centres to persistent memory
   prefs.putInt("Lx", centerLX);
   prefs.putInt("Ly", centerLY);
   prefs.putInt("Rx", centerRX);
@@ -144,6 +152,7 @@ void calibrateSticks()
   Serial.println("Calibration complete.");
 }
 
+// Validate and update inner deadzone threshold
 void setInnerDeadzone(int newDZ)
 {
   if (newDZ >= 0)
@@ -159,7 +168,7 @@ void printDebug(stickState &sticks)
   static unsigned long lastPrint = 0;
   if (millis() - lastPrint > 300)
   {
-    // Debug, shows RAW input vs MAPPED output
+    // Show raw input versus mapped output
     Serial.print("LX [Raw:");
     Serial.print(sticks.rawLX);
     Serial.print(" -> Map:");

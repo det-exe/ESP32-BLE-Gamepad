@@ -3,21 +3,33 @@
 
 #include <Arduino.h>
 
+// Define total hardware button count
 const int buttonCount = 6;
-// Number of buttons, to be updated as buttons are added
-// Action (4) + L3, R3
-const int debounceDelay = 10; // 10ms debounce time
 
+// Define signal debounce duration in milliseconds
+const int debounceDelay = 10;
+
+// Define structure for hardware pin and HID report mapping
 struct inputMap
 {
-  const uint8_t pin; // Associated pin on ESP32
-  const uint8_t hidMap; // Button ID sent to PC
-  bool isPressed; // Pressed or not pressed
-  bool lastReading; // Reading from last loop
-  unsigned long lastDebounceTime; // Timer for debounce
+// Define associated ESP32 hardware pin
+  const uint8_t pin; 
+
+  // Define HID button ID mapped to PC
+  const uint8_t hidMap;
+
+  // Track current active press state
+  bool isPressed;
+
+  // Track physical reading from previous loop
+  bool lastReading;
+
+  // Track timestamp for debounce calculation
+  unsigned long lastDebounceTime;
 };
 
-// Expose the buttons array so the main file can access it for sending reports
+// Expose global button array
+// Enable external access for HID report generation
 extern inputMap buttons[buttonCount];
 
 void setupButtons();

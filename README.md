@@ -4,19 +4,19 @@
 
 - X and Y axis reading, processing and outputting
 - L3 and R3 button press 
-- Automatic and persistant calibration for centre point (currently via serial monitor)
-- Circular vector clamping
-- Raw value mapping to standard 16-bit from 12-bit and signal smoothing
-- Set outer deadzone and configurable inner deadzone (currently via serial monitor)
-- Cubic response curves (tbd)
+- Calibrate centre point automatically with persistent storage via serial monitor
+- Clamp output vectors to circular boundary
+- Map raw values to standard output limits and smooth electrical noise
+- Configure inner and outer deadzones via serial monitor
+- Implement cubic response curves in future updates
 
 ### Buttons
 
-- Four action buttons (ABXY)
-- Direction Pad (D-Pad)
-- Menu buttons
-- Triggers
+- Support four primary action buttons including A, B, X and Y
+- Support directional pad inputs
+- Support menu navigation buttons
+- Support shoulder triggers
 
 ### Potential Ideas
 
-- GUI for configuration with QT and JSON 
+- Develop graphical configuration interface using Qt and JSON

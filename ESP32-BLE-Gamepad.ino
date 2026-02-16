@@ -3,41 +3,37 @@
 #include "AnalogueSticks.h"
 #include "Buttons.h"
 
-const int pollingInterval = 8; // 8ms = 125Hz polling rate
-// L3, R3
+// Define 125Hz polling rate interval at 8ms
+const int pollingInterval = 8;
 
-// Global instances
-stickState sticks; // From AnalogueSticks.h
+// Define structure for raw and processed analogue axis data
+stickState sticks;
 
 // Initialise BLE gamepad with name, manufacturer and initial battery level
 BleGamepad bleGamepad("ESP32 Gamepad", "dev-exe", 100);
 
-// For serial monitor in Arduino IDE (to be removed)
+// Track previous loop execution time for non-blocking polling
 unsigned long lastLoopTime = 0;
 
 void setup()
 {
-  // For serial monitor in Arduino IDE
+  // Start serial communication for Arduino IDE monitor
   Serial.begin(115200);
   Serial.println("Start: ");
-  analogSetAttenuation(ADC_11db);
+
+  // Increase ADC range to maximum voltage with 11dB
+  analogSetAttenuation(ADC_11db); 
 
   // Initialise split stick logic
   setupSticks();
+
+  // Initialise hardware button pins
   setupButtons();
 
-  // Hardware setup
-  // Enables pullup resistor for BTN_L and R pins, prevents floating
-  // Default state is HIGH, button press causes LOW
-  for (int i = 0; i < buttonCount; i++)
-  {
-    pinMode(buttons[i].pin, INPUT_PULLUP);
-  }
-
-  // Bluetooth HID configuration
+  // Configure Bluetooth HID settings
   BleGamepadConfiguration bleGamepadConfig;
 
-  // Set controller type to generic Gamepad to for broad compatibility
+  // Set controller type to generic Gamepad for broad compatibility
   bleGamepadConfig.setControllerType(CONTROLLER_TYPE_GAMEPAD);
   bleGamepad.begin(&bleGamepadConfig);
 }
@@ -48,9 +44,9 @@ void loop()
   if (Serial.available())
   {
     char cmd = Serial.read();
-    // 'c' to auto calibrate
+    // Trigger automatic calibration with c command
     if (cmd == 'c') calibrateSticks();
-    // 'd *value*' to manually change deadzone
+    // Update inner deadzone threshold with d command and numeric value
     if (cmd == 'd') setInnerDeadzone(Serial.parseInt());
   }
 
@@ -60,15 +56,15 @@ void loop()
     lastLoopTime = currentTime;
     if (bleGamepad.isConnected())
     {
-      // Stick logic
+      // Process analogue stick logic
       readSticks(sticks);
       processSticks(sticks);
       printDebug(sticks);
 
-      // Button Logic
+      // Process hardware button logic
       readButtons();
 
-      // Send Report
+      // Send updated HID report
       bleGamepad.setLeftThumb(sticks.outLX, sticks.outLY);
       bleGamepad.setRX(sticks.outRX);
       bleGamepad.setRY(sticks.outRY);
