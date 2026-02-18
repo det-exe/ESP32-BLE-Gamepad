@@ -7,11 +7,11 @@ inputMap buttons[buttonCount] =
 {
   // Define action buttons 
   // Define action down button mapping A or Cross
-  {18, BUTTON_6, false, false, 0},
+  {18, BUTTON_1, false, false, 0},
   // Define action right button mapping B or Circle
   {19, BUTTON_2, false, false, 0},
   // Define action left button mapping X or Square
-  {22, BUTTON_4, false, false, 0},
+  {5, BUTTON_4, false, false, 0},
   // Define action up button mapping Y or Triangle
   {23, BUTTON_5, false, false, 0},
 
@@ -69,13 +69,13 @@ void readButtons()
 dpadInput dpad[4] =
 {
   // Define up directional pin
-  {13, false, false, 0}, 
-  // Define down directional pin
   {14, false, false, 0}, 
+  // Define down directional pin
+  {27, false, false, 0}, 
   // Define left directional pin
   {26, false, false, 0}, 
   // Define right directional pin
-  {27, false, false, 0}  
+  {25, false, false, 0}  
 };
 
 void setupDpad()
