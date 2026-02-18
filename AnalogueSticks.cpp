@@ -4,28 +4,28 @@
 Preferences prefs;
 
 // Define stick axis centre variables for calibration
-int centerLX, centerLY, centerRX, centerRY;
+int centreLX, centreLY, centreRX, centreRY;
 int innerDeadzone;
 
 // Map raw value across split ranges with deadzone limits
-int mapSplit(int val, int inMin, int inCenter, int inMax, int outMin, int outCenter, int outMax)
+int mapSplit(int val, int inMin, int incentre, int inMax, int outMin, int outcentre, int outMax)
 {
   // Return centre coordinate if input falls within inner deadzone threshold
-  if (abs(val - inCenter) < innerDeadzone) return outCenter;
+  if (abs(val - incentre) < innerDeadzone) return outcentre;
 
   // Clamp input to outer deadzone limits to prevent overflow
   val = constrain(val, inMin + outerDeadzone, inMax - outerDeadzone);
 
   // Apply asymmetric mapping split at calibration centre
-  if (val <= inCenter)
+  if (val <= incentre)
   {
     // Map lower half range
-    return map(val, inMin + outerDeadzone, inCenter, outMin, outCenter);
+    return map(val, inMin + outerDeadzone, incentre, outMin, outcentre);
   }
   else
   {
     // Map upper half range
-    return map(val, inCenter, inMax - outerDeadzone, outCenter, outMax);
+    return map(val, incentre, inMax - outerDeadzone, outcentre, outMax);
   }
 }
 
@@ -33,15 +33,15 @@ int mapSplit(int val, int inMin, int inCenter, int inMax, int outMin, int outCen
 void constrainToCircle(int *axisX, int *axisY)
 {
   // Define centre and radius based on max output
-  float center = gamepadMax / 2.0;
+  float centre = gamepadMax / 2.0;
   float maxRadius = gamepadMax / 2.0;
 
   // Shift coordinates to centre origin
-  float centeredX = *axisX - center;
-  float centeredY = *axisY - center;
+  float centredX = *axisX - centre;
+  float centredY = *axisY - centre;
 
   // Calculate vector magnitude
-  float magnitude = hypot(centeredX, centeredY);
+  float magnitude = hypot(centredX, centredY);
 
   // Clamp vector to max radius if outside bounds
   if (magnitude > maxRadius)
@@ -50,12 +50,12 @@ void constrainToCircle(int *axisX, int *axisY)
     float scale = maxRadius / magnitude;
     
     // Apply scaling to X and Y axes
-    centeredX *= scale;
-    centeredY *= scale;
+    centredX *= scale;
+    centredY *= scale;
 
     // Restore original coordinate system
-    *axisX = (int)(centeredX + center);
-    *axisY = (int)(centeredY + center);
+    *axisX = (int)(centredX + centre);
+    *axisY = (int)(centredY + centre);
   }
 }
 
@@ -65,10 +65,10 @@ void setupSticks()
   prefs.begin("gamepad", false); 
 
   // Load saved values or apply defaults
-  centerLX = prefs.getInt("Lx", adcMax / 2);
-  centerLY = prefs.getInt("Ly", adcMax / 2);
-  centerRX = prefs.getInt("Rx", adcMax / 2);
-  centerRY = prefs.getInt("Ry", adcMax / 2);
+  centreLX = prefs.getInt("Lx", adcMax / 2);
+  centreLY = prefs.getInt("Ly", adcMax / 2);
+  centreRX = prefs.getInt("Rx", adcMax / 2);
+  centreRY = prefs.getInt("Ry", adcMax / 2);
   
   // Apply default inner deadzone threshold
   innerDeadzone = prefs.getInt("dz", 150);
@@ -104,12 +104,12 @@ void processSticks(stickState &sticks)
 
   // Invert Y axis mapping to comply with standard HID gamepad orientation
   // Map left stick
-  sticks.outLX = mapSplit(sticks.rawLX, 0, centerLX, adcMax, gamepadMax, mid, 0);
-  sticks.outLY = mapSplit(sticks.rawLY, 0, centerLY, adcMax, 0, mid, gamepadMax);
+  sticks.outLX = mapSplit(sticks.rawLX, 0, centreLX, adcMax, gamepadMax, mid, 0);
+  sticks.outLY = mapSplit(sticks.rawLY, 0, centreLY, adcMax, 0, mid, gamepadMax);
 
   // Map right stick
-  sticks.outRX = mapSplit(sticks.rawRX, 0, centerRX, adcMax, gamepadMax, mid, 0);
-  sticks.outRY = mapSplit(sticks.rawRY, 0, centerRY, adcMax, 0, mid, gamepadMax);
+  sticks.outRX = mapSplit(sticks.rawRX, 0, centreRX, adcMax, gamepadMax, mid, 0);
+  sticks.outRY = mapSplit(sticks.rawRY, 0, centreRY, adcMax, 0, mid, gamepadMax);
 
   // Apply circularisation
   constrainToCircle(&sticks.outLX, &sticks.outLY);
@@ -137,17 +137,17 @@ void calibrateSticks()
     delay(2); 
   }
 
-// Calculate average reading across calibration sample count
-  centerLX = tLX / s;
-  centerLY = tLY / s;
-  centerRX = tRX / s;
-  centerRY = tRY / s;
+  // Calculate average reading across calibration sample count
+  centreLX = tLX / s;
+  centreLY = tLY / s;
+  centreRX = tRX / s;
+  centreRY = tRY / s;
 
   // Save calculated centres to persistent memory
-  prefs.putInt("Lx", centerLX);
-  prefs.putInt("Ly", centerLY);
-  prefs.putInt("Rx", centerRX);
-  prefs.putInt("Ry", centerRY);
+  prefs.putInt("Lx", centreLX);
+  prefs.putInt("Ly", centreLY);
+  prefs.putInt("Rx", centreRX);
+  prefs.putInt("Ry", centreRY);
 
   Serial.println("Calibration complete.");
 }

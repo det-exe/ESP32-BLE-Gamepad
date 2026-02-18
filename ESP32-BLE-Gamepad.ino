@@ -30,6 +30,9 @@ void setup()
   // Initialise hardware button pins
   setupButtons();
 
+  // Initialise directional pad hardware pins
+  setupDpad();
+
   // Configure Bluetooth HID settings
   BleGamepadConfiguration bleGamepadConfig;
 
@@ -80,6 +83,11 @@ void loop()
           bleGamepad.release(buttons[i].hidMap);
         }
       }
+      // Read physical directional pad state
+      uint8_t dpadState = readDpadState();
+      
+      // Send updated directional pad state to hat switch one
+      bleGamepad.setHat1(dpadState);
     }
   }
 }

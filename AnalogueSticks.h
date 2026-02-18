@@ -23,9 +23,9 @@ const int sampleCount = 50;
 
 // Define analogue stick hardware pins
 const int pinLX = 32;
-const int pinLY = 33;
-const int pinRX = 34;
-const int pinRY = 39;
+const int pinLY = 32;
+const int pinRX = 32;
+const int pinRY = 32;
 
 // Define structure for raw and processed analogue axis data
 struct stickState
