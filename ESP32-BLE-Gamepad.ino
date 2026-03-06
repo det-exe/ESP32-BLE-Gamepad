@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <BleGamepad.h>
-#include <Wire.h>
 #include "AnalogueSticks.h"
 #include "Buttons.h"
 #include "Motion.h"
@@ -23,9 +22,6 @@ void setup()
   Serial.println("Start: ");
   // Increase ADC range to maximum voltage with 11dB attenuation
   analogSetAttenuation(ADC_11db);
-
-  // Initialise isolated I2C bus for the MCP23017 expander
-  Wire.begin(25, 26);
 
   // Initialise split stick logic
   setupSticks();
@@ -72,7 +68,6 @@ void loop()
   if (currentTime - lastLoopTime >= pollingInterval)
   {
     lastLoopTime = currentTime;
-
     if (bleGamepad.isConnected())
     {
       // Process analogue stick logic
@@ -81,7 +76,6 @@ void loop()
 
       // Process hardware button logic
       readButtons();
-
       // Assign updated left stick states
       bleGamepad.setLeftThumb(sticks.outLX, sticks.outLY);
       // Assign updated right stick states
@@ -107,7 +101,6 @@ void loop()
       uint8_t dpadState = readDpadState();
       // Send updated directional pad state to hat switch one
       bleGamepad.setHat1(dpadState);
-
       // Transmit the complete gamepad packet to the operating system
       bleGamepad.sendReport();
     }

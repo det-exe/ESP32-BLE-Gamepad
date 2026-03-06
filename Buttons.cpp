@@ -94,6 +94,9 @@ dpadInput dpad[4] =
 
 void setupDpad()
 {
+  // Initialise isolated I2C bus for the MCP23017 expander
+  Wire.begin(25, 26);
+
   // Initialise communication with expansion chip
   if (!mcp.begin_I2C(0x20, &Wire))
   {
