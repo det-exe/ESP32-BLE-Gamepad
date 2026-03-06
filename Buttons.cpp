@@ -2,18 +2,32 @@
 // Include header required for button constants
 #include <BleGamepad.h> 
 
+// Instantiate global I2C expansion object
+Adafruit_MCP23X17 mcp;
+
+// Define hardware interrupt pin for expansion chip
+const byte interruptPin = 15;
+// Track active interrupt state for debounce processing
+volatile bool mcpInterruptTriggered = false;
+
+// Flag interrupt detection for polling loop
+void IRAM_ATTR handleMcpInterrupt()
+{
+  mcpInterruptTriggered = true;
+}
+
 // Define global button array
 inputMap buttons[buttonCount] =
 {
   // Define action buttons 
-  // Define action down button mapping A or Cross
+  // Define action down button mapping
   {18, BUTTON_1, false, false, 0},
-  // Define action right button mapping B or Circle
-  {19, BUTTON_2, false, false, 0},
-  // Define action left button mapping X or Square
-  {5, BUTTON_4, false, false, 0},
-  // Define action up button mapping Y or Triangle
-  {23, BUTTON_5, false, false, 0},
+  // Define action right button mapping
+  {18, BUTTON_2, false, false, 0},
+  // Define action left button mapping
+  {18, BUTTON_4, false, false, 0},
+  // Define action up button mapping
+  {18, BUTTON_5, false, false, 0},
 
   // Define stick buttons
   // Define left stick click
@@ -43,23 +57,23 @@ void readButtons()
     // Read physical pin state
     bool reading = (digitalRead(buttons[i].pin) == LOW);
 
-    // Reset debounce timer if signal is unstable
+    // Reset debounce timer on unstable signal detection
     if (reading != buttons[i].lastReading)
     {
       buttons[i].lastDebounceTime = currentTime;
     }
 
-    // Check if signal is stable based on set debounce threshold
+    // Evaluate signal stability against debounce threshold
     if ((currentTime - buttons[i].lastDebounceTime) > debounceDelay)
     {
-      // Update state only if stable reading differs from current state
+      // Update internal state on confirmed stable change
       if (reading != buttons[i].isPressed)
       {
         buttons[i].isPressed = reading;
       }
     }
 
-    // Save reading for next loop
+    // Store current reading for subsequent loop comparison
     buttons[i].lastReading = reading;
   }
 }
@@ -68,55 +82,73 @@ void readButtons()
 // Order elements strictly as up, down, left and right
 dpadInput dpad[4] =
 {
-  // Define up directional pin
-  {14, false, false, 0}, 
-  // Define down directional pin
-  {27, false, false, 0}, 
-  // Define left directional pin
-  {26, false, false, 0}, 
-  // Define right directional pin
-  {25, false, false, 0}  
+  // Define up directional pin on MCP23017 Port B
+  {8, false, false, 0}, 
+  // Define down directional pin on MCP23017 Port B
+  {9, false, false, 0}, 
+  // Define left directional pin on MCP23017 Port B
+  {10, false, false, 0}, 
+  // Define right directional pin on MCP23017 Port B
+  {11, false, false, 0}  
 };
 
 void setupDpad()
 {
-  // Configure hardware pins
-  // Enable pullup resistors for all directional pad pins to prevent floating signals
-  // Establish default HIGH state where physical press causes LOW signal
+  // Initialise communication with expansion chip
+  if (!mcp.begin_I2C(0x20, &Wire))
+  {
+    Serial.println("Error initialising MCP23017.");
+    while (1);
+  }
+  
+  // Configure hardware interrupt pin on ESP32
+  pinMode(interruptPin, INPUT_PULLUP);
+  // Attach hardware interrupt to processing function
+  attachInterrupt(digitalPinToInterrupt(interruptPin), handleMcpInterrupt, FALLING);
+  
+  // Configure expansion chip to mirror interrupts
+  // Set interrupt output pin to active low state
+  mcp.setupInterrupts(true, false, LOW);
+
+  // Configure expansion hardware pins
   for (int i = 0; i < 4; i++)
   {
-    pinMode(dpad[i].pin, INPUT_PULLUP);
+    mcp.pinMode(dpad[i].pin, INPUT_PULLUP);
+    mcp.setupInterruptPin(dpad[i].pin, CHANGE);
   }
+  
+  // Clear any pending interrupts on startup
+  mcp.clearInterrupts();
 }
 
 uint8_t readDpadState()
 {
-  unsigned long currentTime = millis();
+  static unsigned long debounceTimer = 0;
+  static bool isDebouncing = false;
 
-  // Process hardware directional pad states
-  for (int i = 0; i < 4; i++)
+  // Start debounce timer on software interrupt flag or active hardware low signal
+  if ((mcpInterruptTriggered || digitalRead(interruptPin) == LOW) && !isDebouncing)
   {
-    // Read physical pin state
-    bool reading = (digitalRead(dpad[i].pin) == LOW);
+    isDebouncing = true;
+    debounceTimer = millis();
+  }
 
-    // Reset debounce timer if signal is unstable
-    if (reading != dpad[i].lastReading)
+  // Verify completion of debounce interval
+  if (isDebouncing && (millis() - debounceTimer > debounceDelay))
+  {
+    // Process hardware directional pad states
+    for (int i = 0; i < 4; i++)
     {
-      dpad[i].lastDebounceTime = currentTime;
-    }
-
-    // Check if signal is stable based on set debounce threshold
-    if ((currentTime - dpad[i].lastDebounceTime) > debounceDelay)
-    {
-      // Update state only if stable reading differs from current state
-      if (reading != dpad[i].isPressed)
-      {
-        dpad[i].isPressed = reading;
-      }
+      // Read physical expansion pin state
+      dpad[i].isPressed = (mcp.digitalRead(dpad[i].pin) == LOW);
     }
     
-    // Save reading for next loop
-    dpad[i].lastReading = reading;
+    // Reset software interrupt flag
+    mcpInterruptTriggered = false;
+    // Reset debounce active state
+    isDebouncing = false;
+    // Clear handled expansion chip hardware interrupts
+    mcp.clearInterrupts();
   }
 
   // Map physical button states to logical directional variables

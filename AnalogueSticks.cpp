@@ -111,9 +111,10 @@ void processSticks(stickState &sticks)
   sticks.outRX = mapSplit(sticks.rawRX, 0, centreRX, adcMax, gamepadMax, mid, 0);
   sticks.outRY = mapSplit(sticks.rawRY, 0, centreRY, adcMax, 0, mid, gamepadMax);
 
-  // Apply circularisation
+  // Apply circular boundary constraints
   constrainToCircle(&sticks.outLX, &sticks.outLY);
   constrainToCircle(&sticks.outRX, &sticks.outRY);
+
 }
 
 void calibrateSticks()

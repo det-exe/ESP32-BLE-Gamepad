@@ -2,6 +2,7 @@
 #define BUTTONS_H
 
 #include <Arduino.h>
+#include <Adafruit_MCP23X17.h>
 
 // Define total hardware button count
 const int buttonCount = 6;
@@ -14,16 +15,12 @@ struct inputMap
 {
   // Define associated ESP32 hardware pin
   const uint8_t pin; 
-
   // Define HID button ID mapped to PC
   const uint8_t hidMap;
-
   // Track current active press state
   bool isPressed;
-
   // Track physical reading from previous loop
   bool lastReading;
-
   // Track timestamp for debounce calculation
   unsigned long lastDebounceTime;
 };
@@ -31,6 +28,10 @@ struct inputMap
 // Expose global button array
 // Enable external access for HID report generation
 extern inputMap buttons[buttonCount];
+// Expose global I2C expansion object
+extern Adafruit_MCP23X17 mcp;
+// Expose expansion chip interrupt flag
+extern volatile bool mcpInterruptTriggered;
 
 void setupButtons();
 void readButtons();
@@ -40,22 +41,20 @@ struct dpadInput
 {
   // Define associated ESP32 hardware pin
   const uint8_t pin; 
-  
   // Track current active press state
   bool isPressed; 
-  
   // Track physical reading from previous loop
   bool lastReading; 
-  
   // Track timestamp for debounce calculation
   unsigned long lastDebounceTime; 
 };
 
 // Expose global directional pad array
-// Enable external access for HID report generation
 extern dpadInput dpad[4];
 
 void setupDpad();
 uint8_t readDpadState();
+// Process hardware interrupt signal
+void IRAM_ATTR handleMcpInterrupt();
 
 #endif
