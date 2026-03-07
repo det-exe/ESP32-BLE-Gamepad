@@ -92,6 +92,17 @@ dpadInput dpad[4] =
   {11, false, false, 0}  
 };
 
+// Define global expansion button array
+mcpInputMap mcpButtons[mcpButtonCount] =
+{
+  // Define Select button on MCP23017 Port B
+  {12, BUTTON_11, false},
+  // Define Start button on MCP23017 Port B
+  {13, BUTTON_12, false},
+  // Define Guide button on MCP23017 Port B
+  {14, BUTTON_13, false}
+};
+
 void setupDpad()
 {
   // Initialise isolated I2C bus for the MCP23017 expander
@@ -113,11 +124,18 @@ void setupDpad()
   // Set interrupt output pin to active low state
   mcp.setupInterrupts(true, false, LOW);
 
-  // Configure expansion hardware pins
+  // Configure directional pad hardware pins
   for (int i = 0; i < 4; i++)
   {
     mcp.pinMode(dpad[i].pin, INPUT_PULLUP);
     mcp.setupInterruptPin(dpad[i].pin, CHANGE);
+  }
+
+  // Configure supplementary expansion button hardware pins
+  for (int i = 0; i < mcpButtonCount; i++)
+  {
+    mcp.pinMode(mcpButtons[i].pin, INPUT_PULLUP);
+    mcp.setupInterruptPin(mcpButtons[i].pin, CHANGE);
   }
   
   // Clear any pending interrupts on startup
@@ -144,6 +162,13 @@ uint8_t readDpadState()
     {
       // Read physical expansion pin state
       dpad[i].isPressed = (mcp.digitalRead(dpad[i].pin) == LOW);
+    }
+
+    // Process supplementary expansion button states
+    for (int i = 0; i < mcpButtonCount; i++)
+    {
+      // Read physical expansion pin state
+      mcpButtons[i].isPressed = (mcp.digitalRead(mcpButtons[i].pin) == LOW);
     }
     
     // Reset software interrupt flag

@@ -26,11 +26,10 @@ struct inputMap
 };
 
 // Expose global button array
-// Enable external access for HID report generation
 extern inputMap buttons[buttonCount];
 // Expose global I2C expansion object
 extern Adafruit_MCP23X17 mcp;
-// Expose expansion chip interrupt flag
+// Expose interrupt flag
 extern volatile bool mcpInterruptTriggered;
 
 void setupButtons();
@@ -52,9 +51,24 @@ struct dpadInput
 // Expose global directional pad array
 extern dpadInput dpad[4];
 
+// Define structure for supplementary expansion button mapping
+struct mcpInputMap
+{
+  // Define associated MCP23017 hardware pin
+  const uint8_t pin;
+  // Define HID button ID mapped to PC
+  const uint8_t hidMap;
+  // Track current active press state
+  bool isPressed;
+};
+
+// Define total supplementary expansion button count
+const int mcpButtonCount = 3;
+// Expose global expansion button array
+extern mcpInputMap mcpButtons[mcpButtonCount];
+
 void setupDpad();
 uint8_t readDpadState();
-// Process hardware interrupt signal
 void IRAM_ATTR handleMcpInterrupt();
 
 #endif

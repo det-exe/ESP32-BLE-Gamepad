@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <BleGamepad.h>
+#include <Wire.h>
 #include "AnalogueSticks.h"
 #include "Buttons.h"
 #include "Motion.h"
@@ -68,6 +69,7 @@ void loop()
   if (currentTime - lastLoopTime >= pollingInterval)
   {
     lastLoopTime = currentTime;
+
     if (bleGamepad.isConnected())
     {
       // Process analogue stick logic
@@ -76,6 +78,7 @@ void loop()
 
       // Process hardware button logic
       readButtons();
+
       // Assign updated left stick states
       bleGamepad.setLeftThumb(sticks.outLX, sticks.outLY);
       // Assign updated right stick states
@@ -85,6 +88,7 @@ void loop()
       bleGamepad.setZ(motion.outZ);
       bleGamepad.setRZ(motion.outRZ);
 
+      // Process primary action buttons
       for (int i = 0; i < buttonCount; i++)
       {
         if (buttons[i].isPressed)
@@ -97,10 +101,25 @@ void loop()
         }
       }
 
-      // Read physical directional pad state
+      // Read physical directional pad state and supplementary buttons
       uint8_t dpadState = readDpadState();
+
+      // Process supplementary expansion buttons
+      for (int i = 0; i < mcpButtonCount; i++)
+      {
+        if (mcpButtons[i].isPressed)
+        {
+          bleGamepad.press(mcpButtons[i].hidMap);
+        }
+        else
+        {
+          bleGamepad.release(mcpButtons[i].hidMap);
+        }
+      }
+
       // Send updated directional pad state to hat switch one
       bleGamepad.setHat1(dpadState);
+
       // Transmit the complete gamepad packet to the operating system
       bleGamepad.sendReport();
     }
