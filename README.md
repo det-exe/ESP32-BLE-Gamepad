@@ -1,6 +1,6 @@
 # Bluetooth Low Energy Gamepad
 
-This project implements a wireless HID gamepad. It uses an ESP32 microcontroller. The system integrates the following features:
+This project implements a wireless HID gamepad. It uses an ESP32 microcontroller. It uses the [ESP32 BLE Gamepad Library by LemmingDev](https://github.com/lemmingDev/ESP32-BLE-Gamepad). The system integrates the following features:
 
 * Dual analogue sticks.
 * A directional pad.
