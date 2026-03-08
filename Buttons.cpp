@@ -21,19 +21,29 @@ inputMap buttons[buttonCount] =
 {
   // Define action buttons 
   // Define action down button mapping
-  {18, BUTTON_1, false, false, 0},
+  {5, BUTTON_1, false, false, 0},
   // Define action right button mapping
-  {18, BUTTON_2, false, false, 0},
+  {4, BUTTON_2, false, false, 0},
   // Define action left button mapping
-  {18, BUTTON_4, false, false, 0},
+  {2, BUTTON_4, false, false, 0},
   // Define action up button mapping
-  {18, BUTTON_5, false, false, 0},
+  {13, BUTTON_5, false, false, 0},
 
   // Define stick buttons
   // Define left stick click
-  {32, BUTTON_14, false, false, 0},
+  {27, BUTTON_14, false, false, 0},
   // Define right stick click
-  {32, BUTTON_15, false, false, 0}
+  {14, BUTTON_15, false, false, 0},
+
+  // l1? shoulder buttons
+  {22, BUTTON_7, false, false, 0},
+  // r1?
+  {19, BUTTON_8, false, false, 0},
+
+  // l2?
+  {23, BUTTON_9, false, false, 0},
+  // r2?
+  {18, BUTTON_10, false, false, 0}
 };
 
 void setupButtons()

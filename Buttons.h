@@ -5,10 +5,10 @@
 #include <Adafruit_MCP23X17.h>
 
 // Define total hardware button count
-const int buttonCount = 6;
+const int buttonCount = 10;
 
 // Define signal debounce duration in milliseconds
-const int debounceDelay = 10;
+const int debounceDelay = 4;
 
 // Define structure for hardware pin and HID report mapping
 struct inputMap

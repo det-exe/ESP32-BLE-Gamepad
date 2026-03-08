@@ -92,10 +92,10 @@ void processMotion(motionState &motion)
   }
 
   // Expose latest valid output to main loop
-  // Assign mapped roll to Z axis
-  motion.outZ = currentMappedRoll;
-  // Assign mapped pitch to Rz axis
-  motion.outRZ = currentMappedPitch;
+  // Assign mapped roll to slider 1
+  motion.slider1 = currentMappedRoll;
+  // Assign mapped pitch to slider 2
+  motion.slider2 = currentMappedPitch;
 }
 void setMotionSensitivity(int newSensitivity)
 {

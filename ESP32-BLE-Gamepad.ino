@@ -41,7 +41,7 @@ void setup()
   bleGamepadConfig.setAxesMin(0);
   bleGamepadConfig.setAxesMax(32767);
   // Enable X, Y, Rx, Ry, Z and Rz axes for gamepad output
-  bleGamepadConfig.setWhichAxes(true, true, true, true, true, true, false, false);
+  bleGamepadConfig.setWhichAxes(true, true, false, true, true, false, true, true);
   // Disable automatic reporting to prevent Bluetooth queue saturation
   bleGamepadConfig.setAutoReport(false);
 
@@ -85,8 +85,8 @@ void loop()
       bleGamepad.setRX(sticks.outRX);
       bleGamepad.setRY(sticks.outRY);
       // Assign updated motion states
-      bleGamepad.setZ(motion.outZ);
-      bleGamepad.setRZ(motion.outRZ);
+      bleGamepad.setSlider1(motion.slider1);
+      bleGamepad.setSlider2(motion.slider2);
 
       // Process primary action buttons
       for (int i = 0; i < buttonCount; i++)
