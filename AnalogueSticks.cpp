@@ -32,7 +32,7 @@ int mapSplit(int val, int inMin, int incentre, int inMax, int outMin, int outcen
 // Constrain coordinate output to circular boundary
 void constrainToCircle(int *axisX, int *axisY)
 {
-  // Define centre and radius based on max output
+  // Define centre and radius based on maximum output
   float centre = gamepadMax / 2.0;
   float maxRadius = gamepadMax / 2.0;
 
@@ -49,7 +49,7 @@ void constrainToCircle(int *axisX, int *axisY)
     // Calculate scaling factor to shrink vector
     float scale = maxRadius / magnitude;
     
-    // Apply scaling to X and Y axes
+    // Apply scaling factor to spatial axes
     centredX *= scale;
     centredY *= scale;
 
@@ -61,7 +61,7 @@ void constrainToCircle(int *axisX, int *axisY)
 
 void setupSticks()
 {
-  // Initialise preferences in read and write mode
+  // Initialise preferences in read write mode
   prefs.begin("gamepad", false); 
 
   // Load saved values or apply defaults

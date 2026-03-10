@@ -126,7 +126,7 @@ void loop()
         }
       }
 
-      // Read physical directional pad state and supplementary buttons
+      // Read physical directional pad state
       uint8_t dpadState = readDpadState();
 
       // Process supplementary expansion buttons
@@ -145,7 +145,7 @@ void loop()
       // Send updated directional pad state to hat switch one
       bleGamepad.setHat1(dpadState);
 
-      // Transmit the complete gamepad packet to the operating system
+      // Transmit complete gamepad packet to operating system
       bleGamepad.sendReport();
     }
   }

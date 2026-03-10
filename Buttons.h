@@ -5,7 +5,7 @@
 #include <Adafruit_MCP23X17.h>
 
 // Define total hardware button count
-const int buttonCount = 10;
+const int buttonCount = 8;
 
 // Define signal debounce duration in milliseconds
 const int debounceDelay = 4;
@@ -32,7 +32,9 @@ extern Adafruit_MCP23X17 mcp;
 // Expose interrupt flag
 extern volatile bool mcpInterruptTriggered;
 
+// Initialise hardware button pins
 void setupButtons();
+// Process physical hardware button states
 void readButtons();
 
 // Define structure for hardware pin and directional pad state mapping
@@ -67,8 +69,11 @@ const int mcpButtonCount = 3;
 // Expose global expansion button array
 extern mcpInputMap mcpButtons[mcpButtonCount];
 
+// Initialise directional pad hardware pins
 void setupDpad();
+// Process physical directional pad states
 uint8_t readDpadState();
+// Process hardware interrupt signal
 void IRAM_ATTR handleMcpInterrupt();
 
 #endif

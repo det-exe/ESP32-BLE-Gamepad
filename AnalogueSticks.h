@@ -47,13 +47,21 @@ struct triggerState
   int outL2, outR2;
 };
 
+// Initialise analogue stick hardware pins and load calibration
 void setupSticks();
+// Read and average physical analogue stick states
 void readSticks(stickState &sticks);
+// Process raw values into mapped standard HID coordinates
 void processSticks(stickState &sticks);
+// Calculate and save new centre point calibration
 void calibrateSticks();
+// Validate and update inner deadzone threshold
 void setInnerDeadzone(int newDZ);
+// Output raw and mapped stick values to serial monitor
 void printDebug(stickState &sticks);
+// Initialise digital trigger hardware pins
 void setupTriggers();
+// Process physical digital trigger states
 void readTriggers(triggerState &triggers);
 
 #endif

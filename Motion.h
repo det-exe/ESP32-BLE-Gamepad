@@ -14,7 +14,7 @@ struct motionState
 
 // Initialise hardware serial communication for motion sensor
 void setupMotion();
-// Parse incoming serial data and map logical motion axes
+// Map logical motion axes from incoming serial data
 void processMotion(motionState &motion);
 // Update active sensor input limit mapping
 void setMotionSensitivity(int newSensitivity);

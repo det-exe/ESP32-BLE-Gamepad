@@ -32,18 +32,13 @@ inputMap buttons[buttonCount] =
   // Define stick buttons
   // Define left stick click
   {27, BUTTON_14, false, false, 0},
-  // Define right stick click
+// Define right stick click
   {14, BUTTON_15, false, false, 0},
 
-  // l1? shoulder buttons
+  // Define primary left shoulder mapping
   {22, BUTTON_7, false, false, 0},
-  // r1?
-  {19, BUTTON_8, false, false, 0},
-
-  // l2?
-  {23, BUTTON_9, false, false, 0},
-  // r2?
-  {18, BUTTON_10, false, false, 0}
+  // Define primary right shoulder mapping
+  {19, BUTTON_8, false, false, 0}
 };
 
 void setupButtons()
@@ -115,7 +110,7 @@ mcpInputMap mcpButtons[mcpButtonCount] =
 
 void setupDpad()
 {
-  // Initialise isolated I2C bus for the MCP23017 expander
+  // Initialise isolated I2C bus for expansion chip
   Wire.begin(25, 26);
 
   // Initialise communication with expansion chip
@@ -148,7 +143,7 @@ void setupDpad()
     mcp.setupInterruptPin(mcpButtons[i].pin, CHANGE);
   }
   
-  // Clear any pending interrupts on startup
+  // Clear pending interrupts on startup
   mcp.clearInterrupts();
 }
 
@@ -157,7 +152,7 @@ uint8_t readDpadState()
   static unsigned long debounceTimer = 0;
   static bool isDebouncing = false;
 
-  // Start debounce timer on software interrupt flag or active hardware low signal
+  // Start debounce timer on interrupt detection
   if ((mcpInterruptTriggered || digitalRead(interruptPin) == LOW) && !isDebouncing)
   {
     isDebouncing = true;

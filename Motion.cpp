@@ -97,6 +97,7 @@ void processMotion(motionState &motion)
   // Assign mapped pitch to slider 2
   motion.slider2 = currentMappedPitch;
 }
+
 void setMotionSensitivity(int newSensitivity)
 {
   // Restrict new sensitivity value strictly to allowed range
