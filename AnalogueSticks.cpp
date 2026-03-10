@@ -185,3 +185,17 @@ void printDebug(stickState &sticks)
     lastPrint = millis();
   }
 }
+
+void setupTriggers()
+{
+  // Enable pullup resistors for hardware trigger pins
+  pinMode(pinL2, INPUT_PULLUP);
+  pinMode(pinR2, INPUT_PULLUP);
+}
+
+void readTriggers(triggerState &triggers)
+{
+  // Map active low digital signals to analogue axis extremes
+  triggers.outL2 = (digitalRead(pinL2) == LOW) ? triggerMax : 0;
+  triggers.outR2 = (digitalRead(pinR2) == LOW) ? triggerMax : 0;
+}

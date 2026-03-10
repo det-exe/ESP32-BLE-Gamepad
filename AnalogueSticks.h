@@ -27,11 +27,24 @@ const int pinLY = 39;
 const int pinRX = 34;
 const int pinRY = 35;
 
+// Define digital trigger hardware pins
+const int pinL2 = 23;
+const int pinR2 = 18;
+
+// Define standard signed 16-bit trigger output
+const int triggerMax = 32767;
+
 // Define structure for raw and processed analogue axis data
 struct stickState
 {
   int rawLX, rawLY, rawRX, rawRY;
   int outLX, outLY, outRX, outRY;
+};
+
+// Define structure for processed trigger axis data
+struct triggerState
+{
+  int outL2, outR2;
 };
 
 void setupSticks();
@@ -40,5 +53,7 @@ void processSticks(stickState &sticks);
 void calibrateSticks();
 void setInnerDeadzone(int newDZ);
 void printDebug(stickState &sticks);
+void setupTriggers();
+void readTriggers(triggerState &triggers);
 
 #endif

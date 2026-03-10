@@ -7,12 +7,17 @@
 
 // Define 125Hz polling rate interval at 8ms
 const int pollingInterval = 8;
+
 // Define structure for raw and processed analogue axis data
 stickState sticks;
+// Define structure for processed trigger axis data
+triggerState triggers;
 // Define structure for processed motion axis data
 motionState motion;
+
 // Initialise BLE gamepad with name, manufacturer and initial battery level
 BleGamepad bleGamepad("ESP32 Gamepad", "dev-exe", 100);
+
 // Track previous loop execution time for non-blocking polling
 unsigned long lastLoopTime = 0;
 
@@ -21,11 +26,14 @@ void setup()
   // Start serial communication for Arduino IDE monitor
   Serial.begin(115200);
   Serial.println("Start: ");
+
   // Increase ADC range to maximum voltage with 11dB attenuation
   analogSetAttenuation(ADC_11db);
 
   // Initialise split stick logic
   setupSticks();
+  // Initialise independent digital triggers
+  setupTriggers();
   // Initialise hardware button pins
   setupButtons();
   // Initialise directional pad hardware pins
@@ -35,17 +43,22 @@ void setup()
 
   // Configure Bluetooth HID settings
   BleGamepadConfiguration bleGamepadConfig;
+
   // Set controller type to generic Gamepad for broad compatibility
   bleGamepadConfig.setControllerType(CONTROLLER_TYPE_GAMEPAD);
+
   // Enforce strictly positive logical limits for the mapping functions
   bleGamepadConfig.setAxesMin(0);
   bleGamepadConfig.setAxesMax(32767);
-  // Enable X, Y, Rx, Ry, Z and Rz axes for gamepad output
-  bleGamepadConfig.setWhichAxes(true, true, false, true, true, false, true, true);
+
+  // Enable all eight spatial axes for gamepad output
+  bleGamepadConfig.setWhichAxes(true, true, true, true, true, true, true, true);
+
   // Disable automatic reporting to prevent Bluetooth queue saturation
   bleGamepadConfig.setAutoReport(false);
 
   bleGamepad.begin(&bleGamepadConfig);
+
 }
 
 void loop()
@@ -54,12 +67,16 @@ void loop()
   if (Serial.available())
   {
     char cmd = Serial.read();
+
     // Trigger automatic calibration with c command
     if (cmd == 'c') calibrateSticks();
+
     // Update inner deadzone threshold with d command and numeric value
     if (cmd == 'd') setInnerDeadzone(Serial.parseInt());
+
     // Update motion sensitivity with s command and numeric value
     if (cmd == 's') setMotionSensitivity(Serial.parseInt());
+
   }
 
   // Process incoming motion data continuously outside the polling block to prevent serial buffer overflow
@@ -75,6 +92,9 @@ void loop()
       // Process analogue stick logic
       readSticks(sticks);
       processSticks(sticks);
+      
+      // Process digital trigger logic
+      readTriggers(triggers);
 
       // Process hardware button logic
       readButtons();
@@ -84,6 +104,11 @@ void loop()
       // Assign updated right stick states
       bleGamepad.setRX(sticks.outRX);
       bleGamepad.setRY(sticks.outRY);
+      
+      // Assign updated trigger states
+      bleGamepad.setZ(triggers.outL2);
+      bleGamepad.setRZ(triggers.outR2);
+
       // Assign updated motion states
       bleGamepad.setSlider1(motion.slider1);
       bleGamepad.setSlider2(motion.slider2);
