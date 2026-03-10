@@ -33,29 +33,34 @@ int mapSplit(int val, int inMin, int incentre, int inMax, int outMin, int outcen
 void constrainToCircle(int *axisX, int *axisY)
 {
   // Define centre and radius based on maximum output
-  float centre = gamepadMax / 2.0;
-  float maxRadius = gamepadMax / 2.0;
+  int32_t centre = gamepadMax / 2;
+  int32_t maxRadius = gamepadMax / 2;
 
   // Shift coordinates to centre origin
-  float centredX = *axisX - centre;
-  float centredY = *axisY - centre;
+  int32_t centredX = *axisX - centre;
+  int32_t centredY = *axisY - centre;
 
-  // Calculate vector magnitude
-  float magnitude = hypot(centredX, centredY);
+  // Calculate absolute values for vector approximation
+  int32_t absX = abs(centredX);
+  int32_t absY = abs(centredY);
 
-  // Clamp vector to max radius if outside bounds
+  // Identify maximum and minimum vector components
+  int32_t maxComponent = max(absX, absY);
+  int32_t minComponent = min(absX, absY);
+
+// Calculate approximate vector magnitude using integer arithmetic
+  int32_t magnitude = maxComponent + (minComponent * 3) / 8;
+
+  // Clamp vector to maximum radius if outside bounds
   if (magnitude > maxRadius)
   {
-    // Calculate scaling factor to shrink vector
-    float scale = maxRadius / magnitude;
-    
-    // Apply scaling factor to spatial axes
-    centredX *= scale;
-    centredY *= scale;
+    // Apply scaling factor to spatial axes using integer arithmetic
+    centredX = (centredX * maxRadius) / magnitude;
+    centredY = (centredY * maxRadius) / magnitude;
 
     // Restore original coordinate system
-    *axisX = (int)(centredX + centre);
-    *axisY = (int)(centredY + centre);
+    *axisX = centredX + centre;
+    *axisY = centredY + centre;
   }
 }
 
@@ -78,8 +83,7 @@ void setupSticks()
 
 void readSticks(stickState &sticks)
 {
-  // Read analogue sticks
-  // Accumulate samples to average out electrical noise
+    // Accumulate samples to average out electrical noise
   long sumLX = 0, sumLY = 0, sumRX = 0, sumRY = 0;
 
   for (int i = 0; i < sampleCount; i++)
