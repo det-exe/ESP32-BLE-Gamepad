@@ -28,9 +28,14 @@ This project implements a wireless HID gamepad. It uses an ESP32 microcontroller
 ## Motion Sensing
 
 * Integrate a GY-25 sensor for tilt input.
-* Map roll data to the Z axis.
-* Map pitch data to the Rz axis.
+* Map roll data to Slider 1.
+* Map pitch data to Slider 2.
 * Adjust sensor sensitivity levels through serial commands.
+
+## Digital Triggers
+
+* Map the L2 trigger to the Z axis.
+* Map the R2 trigger to the Rz axis.
 
 ## Technical Specifications
 
