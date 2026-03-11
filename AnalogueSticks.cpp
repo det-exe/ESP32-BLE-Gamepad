@@ -1,4 +1,5 @@
 #include "AnalogueSticks.h"
+#include <math.h>
 
 // Enable persistent non-volatile storage for calibration data
 Preferences prefs;
@@ -7,58 +8,47 @@ Preferences prefs;
 int centreLX, centreLY, centreRX, centreRY;
 int innerDeadzone;
 
+// Define physical limit variables for multi-point calibration
+int minLX, maxLX, minLY, maxLY;
+int minRX, maxRX, minRY, maxRY;
+
 // Map raw value across split ranges with deadzone limits
 int mapSplit(int val, int inMin, int incentre, int inMax, int outMin, int outcentre, int outMax)
 {
-  // Return centre coordinate if input falls within inner deadzone threshold
   if (abs(val - incentre) < innerDeadzone) return outcentre;
 
-  // Clamp input to outer deadzone limits to prevent overflow
   val = constrain(val, inMin + outerDeadzone, inMax - outerDeadzone);
 
-  // Apply asymmetric mapping split at calibration centre
   if (val <= incentre)
   {
-    // Map lower half range
     return map(val, inMin + outerDeadzone, incentre, outMin, outcentre);
   }
   else
   {
-    // Map upper half range
     return map(val, incentre, inMax - outerDeadzone, outcentre, outMax);
   }
 }
 
-// Constrain coordinate output to circular boundary
+// Constrain coordinate output to a precise circular boundary
 void constrainToCircle(int *axisX, int *axisY)
 {
-  // Define centre and radius based on maximum output
   int32_t centre = gamepadMax / 2;
   int32_t maxRadius = gamepadMax / 2;
 
-  // Shift coordinates to centre origin
+  // Shift coordinates to evaluate distance from origin
   int32_t centredX = *axisX - centre;
   int32_t centredY = *axisY - centre;
 
-  // Calculate absolute values for vector approximation
-  int32_t absX = abs(centredX);
-  int32_t absY = abs(centredY);
+  // Calculate exact vector magnitude using floating-point mathematics
+  float magnitude = sqrt(pow(centredX, 2) + pow(centredY, 2));
 
-  // Identify maximum and minimum vector components
-  int32_t maxComponent = max(absX, absY);
-  int32_t minComponent = min(absX, absY);
-
-// Calculate approximate vector magnitude using integer arithmetic
-  int32_t magnitude = maxComponent + (minComponent * 3) / 8;
-
-  // Clamp vector to maximum radius if outside bounds
+  // Clamp vector to maximum radius boundary
   if (magnitude > maxRadius)
   {
-    // Apply scaling factor to spatial axes using integer arithmetic
     centredX = (centredX * maxRadius) / magnitude;
     centredY = (centredY * maxRadius) / magnitude;
 
-    // Restore original coordinate system
+    // Restore standard coordinate system origin
     *axisX = centredX + centre;
     *axisY = centredY + centre;
   }
@@ -66,16 +56,23 @@ void constrainToCircle(int *axisX, int *axisY)
 
 void setupSticks()
 {
-  // Initialise preferences in read write mode
   prefs.begin("gamepad", false); 
 
-  // Load saved values or apply defaults
   centreLX = prefs.getInt("Lx", adcMax / 2);
   centreLY = prefs.getInt("Ly", adcMax / 2);
   centreRX = prefs.getInt("Rx", adcMax / 2);
   centreRY = prefs.getInt("Ry", adcMax / 2);
+
+  minLX = prefs.getInt("minLx", 0);
+  maxLX = prefs.getInt("maxLx", adcMax);
+  minLY = prefs.getInt("minLy", 0);
+  maxLY = prefs.getInt("maxLy", adcMax);
+
+  minRX = prefs.getInt("minRx", 0);
+  maxRX = prefs.getInt("maxRx", adcMax);
+  minRY = prefs.getInt("minRy", 0);
+  maxRY = prefs.getInt("maxRy", adcMax);
   
-  // Apply default inner deadzone threshold
   innerDeadzone = prefs.getInt("dz", 150);
 
   Serial.println("Sticks Initialised & Calibration Loaded");
@@ -83,10 +80,12 @@ void setupSticks()
 
 void readSticks(stickState &sticks)
 {
-    // Accumulate samples to average out electrical noise
   long sumLX = 0, sumLY = 0, sumRX = 0, sumRY = 0;
+  
+  // Define reduced sample count for Hall effect sensors
+  int localSampleCount = 5;
 
-  for (int i = 0; i < sampleCount; i++)
+  for (int i = 0; i < localSampleCount; i++)
   {
     sumLX += analogRead(pinLX);
     sumLY += analogRead(pinLY);
@@ -94,70 +93,101 @@ void readSticks(stickState &sticks)
     sumRY += analogRead(pinRY);
   }
 
-  // Calculate average reading
-  sticks.rawLX = sumLX / sampleCount;
-  sticks.rawLY = sumLY / sampleCount;
-  sticks.rawRX = sumRX / sampleCount;
-  sticks.rawRY = sumRY / sampleCount;
+  sticks.rawLX = sumLX / localSampleCount;
+  sticks.rawLY = sumLY / localSampleCount;
+  sticks.rawRX = sumRX / localSampleCount;
+  sticks.rawRY = sumRY / localSampleCount;
 }
 
 void processSticks(stickState &sticks)
 {
-  // Calculate midpoint baseline for standard gamepad output
   int mid = gamepadMax / 2;
 
-  // Invert Y axis mapping to comply with standard HID gamepad orientation
-  // Map left stick
-  sticks.outLX = mapSplit(sticks.rawLX, 0, centreLX, adcMax, gamepadMax, mid, 0);
-  sticks.outLY = mapSplit(sticks.rawLY, 0, centreLY, adcMax, 0, mid, gamepadMax);
+  // Map left stick with inverted X-axis and dynamic limits
+  sticks.outLX = mapSplit(sticks.rawLX, minLX, centreLX, maxLX, 0, mid, gamepadMax);
+  sticks.outLY = mapSplit(sticks.rawLY, minLY, centreLY, maxLY, 0, mid, gamepadMax);
 
-  // Map right stick
-  sticks.outRX = mapSplit(sticks.rawRX, 0, centreRX, adcMax, gamepadMax, mid, 0);
-  sticks.outRY = mapSplit(sticks.rawRY, 0, centreRY, adcMax, 0, mid, gamepadMax);
+  // Map right stick with inverted X-axis and dynamic limits
+  sticks.outRX = mapSplit(sticks.rawRX, minRX, centreRX, maxRX, 0, mid, gamepadMax);
+  sticks.outRY = mapSplit(sticks.rawRY, minRY, centreRY, maxRY, 0, mid, gamepadMax);
 
-  // Apply circular boundary constraints
   constrainToCircle(&sticks.outLX, &sticks.outLY);
   constrainToCircle(&sticks.outRX, &sticks.outRY);
-
 }
 
 void calibrateSticks()
 {
-  Serial.println("Calibrating.");
-  // Pause execution to allow physical stick release
-  delay(1000); 
+  Serial.println("Leave sticks in resting centre position.");
+  
+  delay(2000); 
 
   long tLX = 0, tLY = 0, tRX = 0, tRY = 0;
-  // Define sample count for calibration average
   int s = 50;
 
-  // Accumulate sample readings
   for (int i = 0; i < s; i++)
   {
     tLX += analogRead(pinLX);
     tLY += analogRead(pinLY);
     tRX += analogRead(pinRX);
     tRY += analogRead(pinRY);
-    // Pause briefly to ensure distinct readings
+    
     delay(2); 
   }
 
-  // Calculate average reading across calibration sample count
   centreLX = tLX / s;
   centreLY = tLY / s;
   centreRX = tRX / s;
   centreRY = tRY / s;
 
-  // Save calculated centres to persistent memory
+  minLX = maxLX = centreLX;
+  minLY = maxLY = centreLY;
+  minRX = maxRX = centreRX;
+  minRY = maxRY = centreRY;
+
+  Serial.println("Rotate both sticks to their maximum physical limits continuously.");
+
+  unsigned long startTime = millis();
+
+  while (millis() - startTime < 10000)
+  {
+    int curLX = analogRead(pinLX);
+    int curLY = analogRead(pinLY);
+    int curRX = analogRead(pinRX);
+    int curRY = analogRead(pinRY);
+
+    if (curLX < minLX) minLX = curLX;
+    if (curLX > maxLX) maxLX = curLX;
+    
+    if (curLY < minLY) minLY = curLY;
+    if (curLY > maxLY) maxLY = curLY;
+
+    if (curRX < minRX) minRX = curRX;
+    if (curRX > maxRX) maxRX = curRX;
+    
+    if (curRY < minRY) minRY = curRY;
+    if (curRY > maxRY) maxRY = curRY;
+
+    delay(5);
+  }
+
   prefs.putInt("Lx", centreLX);
   prefs.putInt("Ly", centreLY);
   prefs.putInt("Rx", centreRX);
   prefs.putInt("Ry", centreRY);
 
-  Serial.println("Calibration complete.");
+  prefs.putInt("minLx", minLX);
+  prefs.putInt("maxLx", maxLX);
+  prefs.putInt("minLy", minLY);
+  prefs.putInt("maxLy", maxLY);
+
+  prefs.putInt("minRx", minRX);
+  prefs.putInt("maxRx", maxRX);
+  prefs.putInt("minRy", minRY);
+  prefs.putInt("maxRy", maxRY);
+
+  Serial.println("Multi-point calibration complete.");
 }
 
-// Validate and update inner deadzone threshold
 void setInnerDeadzone(int newDZ)
 {
   if (newDZ >= 0)
@@ -173,7 +203,6 @@ void printDebug(stickState &sticks)
   static unsigned long lastPrint = 0;
   if (millis() - lastPrint > 300)
   {
-    // Show raw input versus mapped output
     Serial.print("LX [Raw:");
     Serial.print(sticks.rawLX);
     Serial.print(" -> Map:");
@@ -192,14 +221,12 @@ void printDebug(stickState &sticks)
 
 void setupTriggers()
 {
-  // Enable pullup resistors for hardware trigger pins
   pinMode(pinL2, INPUT_PULLUP);
   pinMode(pinR2, INPUT_PULLUP);
 }
 
 void readTriggers(triggerState &triggers)
 {
-  // Map active low digital signals to analogue axis extremes
   triggers.outL2 = (digitalRead(pinL2) == LOW) ? triggerMax : 0;
   triggers.outR2 = (digitalRead(pinR2) == LOW) ? triggerMax : 0;
 }

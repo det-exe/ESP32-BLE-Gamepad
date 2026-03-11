@@ -16,16 +16,16 @@ const int gamepadMax = 32767;
 const int centerVal = gamepadMax / 2;
 
 // Define hardware limit outer deadzone
-const int outerDeadzone = 50;
+const int outerDeadzone = 15;
 
 // Define sample count for electrical noise averaging
-const int sampleCount = 50; 
+const int sampleCount = 5; 
 
 // Define analogue stick hardware pins
 const int pinLX = 36;
 const int pinLY = 39;
-const int pinRX = 34;
-const int pinRY = 35;
+const int pinRX = 35;
+const int pinRY = 34;
 
 // Define digital trigger hardware pins
 const int pinL2 = 23;
