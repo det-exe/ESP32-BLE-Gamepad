@@ -42,9 +42,3 @@ This project implements a wireless HID gamepad. It uses an ESP32 microcontroller
 * Poll inputs at 125Hz.
 * Output 16-bit logical axes.
 * Connect via Bluetooth Low Energy HID.
-
-## Future Development
-
-* Implement cubic response curves for analogue sticks.
-* Develop a graphical configuration interface.
-* Utilise Qt and JSON for the interface.
