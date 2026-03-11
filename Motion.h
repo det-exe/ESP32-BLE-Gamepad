@@ -7,9 +7,9 @@
 struct motionState
 {
   // Track mapped roll value
-  int16_t slider1;
+  int16_t throttle;
   // Track mapped pitch value
-  int16_t slider2;
+  int16_t rudder;
 };
 
 // Initialise hardware serial communication for motion sensor

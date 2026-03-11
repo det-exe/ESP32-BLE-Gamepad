@@ -32,7 +32,7 @@ void setupMotion()
 
   // Instruct sensor to begin transmitting automatic updates
   Serial2.write(0xA5);
-  Serial2.write(0x52);
+  Serial2.write(0x54);
 }
 
 void processMotion(motionState &motion)
@@ -92,10 +92,10 @@ void processMotion(motionState &motion)
   }
 
   // Expose latest valid output to main loop
-  // Assign mapped roll to slider 1
-  motion.slider1 = currentMappedRoll;
-  // Assign mapped pitch to slider 2
-  motion.slider2 = currentMappedPitch;
+  // Assign mapped roll to throttle
+  motion.throttle = currentMappedRoll;
+  // Assign mapped pitch to rudder
+  motion.rudder = currentMappedPitch;
 }
 
 void setMotionSensitivity(int newSensitivity)

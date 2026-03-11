@@ -7,7 +7,6 @@
 
 // Define 125Hz polling rate interval at 8ms
 const int pollingInterval = 8;
-
 // Define structure for raw and processed analogue axis data
 stickState sticks;
 // Define structure for processed trigger axis data
@@ -17,7 +16,6 @@ motionState motion;
 
 // Initialise BLE gamepad with name, manufacturer and initial battery level
 BleGamepad bleGamepad("ESP32 Gamepad", "dev-exe", 100);
-
 // Track previous loop execution time for non-blocking polling
 unsigned long lastLoopTime = 0;
 
@@ -50,15 +48,20 @@ void setup()
   // Enforce strictly positive logical limits for the mapping functions
   bleGamepadConfig.setAxesMin(0);
   bleGamepadConfig.setAxesMax(32767);
+  
+  bleGamepadConfig.setSimulationMin(0);
+  bleGamepadConfig.setSimulationMax(32767);
 
-  // Enable all eight spatial axes for gamepad output
-  bleGamepadConfig.setWhichAxes(true, true, true, true, true, true, true, true);
+  // Enable six primary spatial axes for gamepad output
+  bleGamepadConfig.setWhichAxes(true, true, true, true, true, true, false, false);
+  
+  // Enable throttle and rudder simulation controls
+  bleGamepadConfig.setWhichSimulationControls(true, true, false, false, false);
 
   // Disable automatic reporting to prevent Bluetooth queue saturation
   bleGamepadConfig.setAutoReport(false);
 
   bleGamepad.begin(&bleGamepadConfig);
-
 }
 
 void loop()
@@ -76,7 +79,6 @@ void loop()
 
     // Update motion sensitivity with s command and numeric value
     if (cmd == 's') setMotionSensitivity(Serial.parseInt());
-
   }
 
   // Process incoming motion data continuously outside the polling block to prevent serial buffer overflow
@@ -101,17 +103,18 @@ void loop()
 
       // Assign updated left stick states
       bleGamepad.setLeftThumb(sticks.outLX, sticks.outLY);
+
       // Assign updated right stick states
       bleGamepad.setRX(sticks.outRX);
       bleGamepad.setRY(sticks.outRY);
-      
+
       // Assign updated trigger states
       bleGamepad.setZ(triggers.outL2);
       bleGamepad.setRZ(triggers.outR2);
 
-      // Assign updated motion states
-      bleGamepad.setSlider1(motion.slider1);
-      bleGamepad.setSlider2(motion.slider2);
+      // Assign updated motion states to simulation controls
+      bleGamepad.setThrottle(motion.throttle);
+      bleGamepad.setRudder(motion.rudder);
 
       // Process primary action buttons
       for (int i = 0; i < buttonCount; i++)
