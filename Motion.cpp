@@ -102,7 +102,7 @@ void setMotionSensitivity(int newSensitivity)
 {
   // Restrict new sensitivity value strictly to allowed range
   newSensitivity = constrain(newSensitivity, 0, 10);
-
+  
   // Update active sensitivity variable
   currentSensitivity = newSensitivity;
 

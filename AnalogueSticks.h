@@ -22,10 +22,10 @@ const int outerDeadzone = 15;
 const int sampleCount = 5; 
 
 // Define analogue stick hardware pins
-const int pinLX = 34; //36
-const int pinLY = 34; //39
-const int pinRX = 34; //35
-const int pinRY = 34; //34
+const int pinLX = 35; //35
+const int pinLY = 34; //34
+const int pinRX = 39; //39
+const int pinRY = 36; //36
 
 // Define digital trigger hardware pins
 const int pinL2 = 23;

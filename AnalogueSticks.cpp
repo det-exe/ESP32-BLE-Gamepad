@@ -105,11 +105,11 @@ void processSticks(stickState &sticks)
 
   // Map left stick with inverted X-axis and dynamic limits
   sticks.outLX = mapSplit(sticks.rawLX, minLX, centreLX, maxLX, 0, mid, gamepadMax);
-  sticks.outLY = mapSplit(sticks.rawLY, minLY, centreLY, maxLY, 0, mid, gamepadMax);
+  sticks.outLY = mapSplit(sticks.rawLY, minLY, centreLY, maxLY, gamepadMax, mid, 0);
 
   // Map right stick with inverted X-axis and dynamic limits
   sticks.outRX = mapSplit(sticks.rawRX, minRX, centreRX, maxRX, 0, mid, gamepadMax);
-  sticks.outRY = mapSplit(sticks.rawRY, minRY, centreRY, maxRY, 0, mid, gamepadMax);
+  sticks.outRY = mapSplit(sticks.rawRY, minRY, centreRY, maxRY, gamepadMax, mid, 0);
 
   constrainToCircle(&sticks.outLX, &sticks.outLY);
   constrainToCircle(&sticks.outRX, &sticks.outRY);
