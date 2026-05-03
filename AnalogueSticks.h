@@ -9,7 +9,7 @@
 // Define maximum ESP32 12-bit ADC resolution
 const int adcMax = 4095;
 
-// Define standard signed 16-bit gamepad output
+// Define positive HID logical output maximum
 const int gamepadMax = 32767;
 
 // Define mathematical centre of 16-bit output
@@ -31,7 +31,7 @@ const int pinRY = 36; //36
 const int pinL2 = 23;
 const int pinR2 = 18;
 
-// Define standard signed 16-bit trigger output
+// Define positive HID trigger output range
 const int triggerMax = 32767;
 
 // Define structure for raw and processed analogue axis data

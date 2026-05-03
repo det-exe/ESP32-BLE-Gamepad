@@ -44,7 +44,7 @@ This project implements a wireless HID gamepad on an ESP32 microcontroller using
 
 ## Licence
 
-This project is licensed under the MIT License. See `LICENSE` for details.
+This project is licensed under the MIT License. See `LICENSE.md` for details.
 
 ## Third-party libraries
 

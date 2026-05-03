@@ -52,7 +52,7 @@ void setup()
   bleGamepadConfig.setSimulationMin(0);
   bleGamepadConfig.setSimulationMax(32767);
 
-  // Enable six primary spatial axes for gamepad output
+  // Enable six primary HID axes for gamepad output
   bleGamepadConfig.setWhichAxes(true, true, true, true, true, true, false, false);
   
   // Enable throttle and rudder simulation controls
