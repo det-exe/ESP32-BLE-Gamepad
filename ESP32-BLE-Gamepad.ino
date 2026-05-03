@@ -15,7 +15,7 @@ triggerState triggers;
 motionState motion;
 
 // Initialise BLE gamepad with name, manufacturer and initial battery level
-BleGamepad bleGamepad("ESP32 Gamepad", "dev-exe", 100);
+BleGamepad bleGamepad("ESP32 Gamepad", "det-exe", 100);
 // Track previous loop execution time for non-blocking polling
 unsigned long lastLoopTime = 0;
 
