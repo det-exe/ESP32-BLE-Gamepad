@@ -41,3 +41,7 @@ This project implements a wireless HID gamepad on an ESP32 microcontroller using
 * 125 Hz input polling rate
 * Logical axes ranging 0 to 32767
 * Connectivity via Bluetooth Low Energy HID
+
+## Licence
+
+This project is licensed under the MIT License. See `LICENSE` for details.
